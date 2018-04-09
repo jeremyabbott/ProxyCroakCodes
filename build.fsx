@@ -12,7 +12,7 @@ let deployDir = "./deploy" |> FullName
 
 let dockerUser = getBuildParam "DockerUser"
 let dockerPassword = getBuildParam "DockerPassword"
-let dockerLoginServer = getBuildParam "DockerLoginServer"
+let dockerLoginServer = getBuildParamOrDefault "DockerLoginServer" "docker.io"
 let dockerImageName = getBuildParam "DockerImageName"
 
 let releaseNotes = File.ReadAllLines "RELEASE_NOTES.md"
