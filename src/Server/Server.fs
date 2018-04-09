@@ -1,13 +1,8 @@
-﻿open System
 open System.IO
 open System.Threading.Tasks
 
-open Microsoft.AspNetCore
-open Microsoft.AspNetCore.Builder
-open Microsoft.AspNetCore.Hosting
-open Microsoft.Extensions.DependencyInjection
-
 open Giraffe
+open Saturn
 
 open Giraffe.Serialization
 open Microsoft.Extensions.DependencyInjection
@@ -19,30 +14,35 @@ let port = 8085us
 
 let getInitCounter () : Task<Counter> = task { return 42 }
 
-let webApp : HttpHandler =
-  route "/api/init" >=>
-    fun next ctx ->
-      task {
-        let! counter = getInitCounter()
-        return! Successful.OK counter next ctx
-      }
+let browserRouter = scope {
+  get "/" (htmlFile (Path.Combine(clientPath, "index.html")))
+}
 
-let configureApp  (app : IApplicationBuilder) =
-  app.UseStaticFiles()
-     .UseGiraffe webApp
+let config (services:IServiceCollection) =
+  let fableJsonSettings = Newtonsoft.Json.JsonSerializerSettings()
+  fableJsonSettings.Converters.Add(Fable.JsonConverter())
+  services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer fableJsonSettings) |> ignore
+  services
+let apiRouter = scope {
+  get "/init" (fun next ctx ->
+    task {
+      let! counter = getInitCounter()
+      return! Successful.OK counter next ctx
+    })
+}
 
-let configureServices (services : IServiceCollection) =
-    services.AddGiraffe() |> ignore
-    let fableJsonSettings = Newtonsoft.Json.JsonSerializerSettings()
-    fableJsonSettings.Converters.Add(Fable.JsonConverter())
-    services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer fableJsonSettings) |> ignore
+let mainRouter = scope {
+  forward "" browserRouter
+  forward "/api" apiRouter
+}
 
-WebHost
-  .CreateDefaultBuilder()
-  .UseWebRoot(clientPath)
-  .UseContentRoot(clientPath)
-  .Configure(Action<IApplicationBuilder> configureApp)
-  .ConfigureServices(configureServices)
-  .UseUrls("http://0.0.0.0:" + port.ToString() + "/")
-  .Build()
-  .Run()
+let app = application {
+    router mainRouter
+    url ("http://0.0.0.0:" + port.ToString() + "/")
+    memory_cache
+    use_static clientPath
+    service_config config
+    use_gzip
+}
+
+run app
