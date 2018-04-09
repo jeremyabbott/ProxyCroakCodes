@@ -1,4 +1,5 @@
 .fake/
+deploy
 obj/
 bin/
 packages/

@@ -117,7 +117,7 @@ Target "BundleClient" (fun _ ->
             info.Arguments <- "publish -c Release -o \"" + FullName deployDir + "\"") TimeSpan.MaxValue
     if result <> 0 then failwith "Publish failed"
 
-    let clientDir = deployDir </> "client"
+    let clientDir = deployDir </> "Client"
     let publicDir = clientDir </> "public"
     let jsDir = clientDir </> "js"
     let cssDir = clientDir </> "css"
@@ -171,9 +171,9 @@ Target "Deploy" (fun _ ->
     ==> "Run"
 
 "Build"
-    ==> "PrepareRelease"
     ==> "BundleClient"
     ==> "CreateDockerImage"
+    ==> "PrepareRelease"
     ==> "Deploy"
 
 RunTargetOrDefault "Build"
