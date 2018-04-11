@@ -22,8 +22,8 @@ let config (services:IServiceCollection) =
   let fableJsonSettings = Newtonsoft.Json.JsonSerializerSettings()
   fableJsonSettings.Converters.Add(Fable.JsonConverter())
   services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer fableJsonSettings) |> ignore
+  services.AddMemoryCache() |> ignore
   services
-
 
 let apiRouter = scope {
   get "/init" (fun next ctx ->
@@ -42,7 +42,7 @@ let mainRouter = scope {
 let app = application {
     router mainRouter
     url ("http://0.0.0.0:" + port.ToString() + "/")
-    memory_cache
+
     use_static clientPath
     service_config config
     use_gzip
