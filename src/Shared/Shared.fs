@@ -15,4 +15,4 @@ type Card = {
     Set : string
 }
 
-type CardResponse = Card list
+type CardResponse = Card seq

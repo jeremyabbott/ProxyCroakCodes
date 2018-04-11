@@ -6,6 +6,7 @@ open Elmish.React
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
 open Fable.PowerPack.Fetch
+open Fable.Core.JsInterop
 
 open Shared
 
@@ -20,37 +21,37 @@ open Fulma.BulmaClasses.Bulma
 open Fulma.BulmaClasses.Bulma.Properties
 open Fulma.Extra.FontAwesome
 
-type Model = Counter option
+type Model =
+    { CardResults : CardResponse option; SearchText : string option }
 
 type Msg =
-| Increment
-| Decrement
-| Init of Result<Counter, exn>
+| Init
+| Search of string option
+| SetSearchText of string
 
 
 
 let init () : Model * Cmd<Msg> =
-  let model = None
-  let cmd =
-    Cmd.ofPromise
-      (fetchAs<int> "/api/init")
-      []
-      (Ok >> Init)
-      (Error >> Init)
+  let model = { CardResults = None; SearchText = None }
+  let cmd = Cmd.none
+    // Cmd.ofPromise
+    //   (fetchAs<int> "/api/init")
+    //   []
+    //   (Ok >> Init)
+    //   (Error >> Init)
   model, cmd
 
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
   let model' =
     match model,  msg with
-    | Some x, Increment -> Some (x + 1)
-    | Some x, Decrement -> Some (x - 1)
-    | None, Init (Ok x) -> Some x
-    | _ -> None
+    | _, Search s -> { model with SearchText = s }
+    | _, SetSearchText s -> { model with SearchText = Some s}
+    | _ -> model
   model', Cmd.none
 
 let show = function
 | Some x -> string x
-| None -> "Loading..."
+| None -> "Enter a Pokemon name"
 
 let navBrand =
   Navbar.Brand.div [ ]
@@ -88,18 +89,14 @@ let containerBox (model : Model) (dispatch : Msg -> unit) =
     [ Form.Field.div [ Form.Field.IsGrouped ]
         [ Form.Control.p [ Form.Control.CustomClass "is-expanded"]
             [ Form.Input.text
-                [ Form.Input.Disabled true
-                  Form.Input.Value (show model) ] ]
+                [ Form.Input.Placeholder "Enter a Pokemon name"
+                  // Form.Input.Value (show model.SearchText)
+                  Form.Input.Props [ OnBlur (fun ev -> dispatch (SetSearchText !!ev.target?value))]] ]
           Form.Control.p [ ]
             [ Button.a
                 [ Button.Color IsPrimary
-                  Button.OnClick (fun _ -> dispatch Increment) ]
-                [ str "+" ] ]
-          Form.Control.p [ ]
-            [ Button.a
-                [ Button.Color IsPrimary
-                  Button.OnClick (fun _ -> dispatch Decrement) ]
-                [ str "-" ] ] ] ]
+                  Button.OnClick (fun _ -> Search model.SearchText |> dispatch) ]
+                [ str "search" ] ] ] ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
   Hero.hero [ Hero.Color IsPrimary; Hero.IsFullHeight ]
