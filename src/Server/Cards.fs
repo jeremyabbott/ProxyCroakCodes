@@ -57,19 +57,14 @@ module Controller =
 
                 match cards with
                 | Ok c ->
-                    // todo: only do this if
+                    // todo: only do this if there was a cache miss
+                    // todo: add TaskResult builder?
                     addToCache cache key c |> ignore
                     return! Controller.json ctx c
                 | Error _ ->
                     let message = sprintf "%s could not be found" name
                     return! notFound ctx message
             }
-            // [{  Name = name
-            //     Id = "sm4-30"
-            //     ImageUrl = "https://images.pokemontcg.io/sm4/30.png"
-            //     Number = 30
-            //     SetCode = "sm4"
-            //     Set = "Crimson Invasion" }] |> Controller.json ctx
 
     let controller = controller {
         show nameSearch
