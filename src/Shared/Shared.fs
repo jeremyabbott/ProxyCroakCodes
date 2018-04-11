@@ -10,7 +10,7 @@ type Card = {
     Id : string
     Name : string
     ImageUrl : string
-    Number : int
+    Number : string
     SetCode : string
     Set : string
 }

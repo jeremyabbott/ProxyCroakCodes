@@ -47,20 +47,17 @@ module Controller =
                 let serializer = getService<IJsonSerializer> ctx
                 let cache = getService<IMemoryCache> ctx
                 let key = cacheKey name
-                printfn "serializer %A" serializer
-                printfn "cache %A" cache
                 let cc = getFromCache<Card seq> cache (cacheKey name)
                 let! cards =
                     match cc with
                     | Ok _ ->
-                        printfn "cacheHit"
                         task { return cc }
                     | Error _ ->
-                        printfn "noCacheHit"
                         Domain.getByName serializer name
 
                 match cards with
                 | Ok c ->
+                    // todo: only do this if
                     addToCache cache key c |> ignore
                     return! Controller.json ctx c
                 | Error _ ->
