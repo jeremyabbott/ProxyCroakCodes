@@ -23,12 +23,15 @@ let config (services:IServiceCollection) =
   fableJsonSettings.Converters.Add(Fable.JsonConverter())
   services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer fableJsonSettings) |> ignore
   services
+
+
 let apiRouter = scope {
   get "/init" (fun next ctx ->
     task {
       let! counter = getInitCounter()
       return! Successful.OK counter next ctx
     })
+  forward "/search" ProxyCroakCodes.Controller.controller
 }
 
 let mainRouter = scope {
