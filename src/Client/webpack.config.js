@@ -37,12 +37,13 @@ module.exports = {
   devServer: {
     proxy: {
       '/api/*': {
-        target: 'http://localhost:' + port,
+        target: 'http://127.0.0.1:' + port,
         changeOrigin: true
       }
     },
     hot: true,
-    inline: true
+    inline: true,
+    host: '127.0.0.1'
   },
   module: {
     rules: [
