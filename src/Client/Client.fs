@@ -2,9 +2,9 @@ module Client
 
 open Elmish
 open Elmish.React
-
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
+open Fable.PowerPack
 open Fable.PowerPack.Fetch
 open Fable.Core.JsInterop
 
@@ -22,17 +22,20 @@ open Fulma.BulmaClasses.Bulma.Properties
 open Fulma.Extra.FontAwesome
 
 type Model =
-    { CardResults : CardResponse option; SearchText : string option }
+    { CardResults : CardResponse option;
+      SearchText : string option;
+      Searching: bool;
+      ErrorMessage: string }
 
 type Msg =
 | Init
-| Search of string option
+| Search
 | SetSearchText of string
-
-
+| SearchSuccess of CardResponse
+| SearchFailed of exn
 
 let init () : Model * Cmd<Msg> =
-  let model = { CardResults = None; SearchText = None }
+  let model = { CardResults = None; SearchText = None; Searching = false; ErrorMessage = "" }
   let cmd = Cmd.none
     // Cmd.ofPromise
     //   (fetchAs<int> "/api/init")
@@ -41,13 +44,30 @@ let init () : Model * Cmd<Msg> =
     //   (Error >> Init)
   model, cmd
 
+let search text =
+    promise {
+        match text with
+        | None -> return! failwithf "Please enter a Pokemon name"
+        | Some s ->
+            let requestProperties =
+                [ RequestProperties.Method HttpMethod.GET
+                  Fetch.requestHeaders [
+                      HttpRequestHeaders.ContentType "application/json" ]]
+            let url = sprintf "/api/search/%s" s
+            try
+                return! Fetch.fetchAs<CardResponse> url requestProperties
+            with _ -> return! failwithf "Could not find %s" s
+    }
+
+let searchCmd text =
+  Cmd.ofPromise search text SearchSuccess SearchFailed
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
-  let model' =
-    match model,  msg with
-    | _, Search s -> { model with SearchText = s }
-    | _, SetSearchText s -> { model with SearchText = Some s}
-    | _ -> model
-  model', Cmd.none
+    match model, msg with
+    | _, Search -> { model with Searching = true }, searchCmd model.SearchText
+    | _, SetSearchText s -> { model with SearchText = Some s}, Cmd.none
+    | _, SearchSuccess cs -> { model with CardResults = Some cs; Searching = false}, Cmd.none
+    | _, SearchFailed exn -> { model with ErrorMessage = exn.Message; Searching = false}, Cmd.none
+    | _ -> model, Cmd.none
 
 let show = function
 | Some x -> string x
@@ -84,18 +104,44 @@ let navMenu =
                     [ Fa.icon Fa.I.Github; Fa.fw ]
                   span [ ] [ str "View Source" ] ] ] ] ]
 
+let card (c: Card) =
+  let headerFormat c =
+    sprintf "%s %s" c.Name c.Number
+  Panel.block [Panel.Block.CustomClass "results"] [
+    headerFormat c |> str
+  ]
+
+let cards (model : Model) (dispatch: Msg -> unit) =
+    match model.CardResults with
+    | Some cs ->
+        let panels =
+          cs
+          |> Seq.toList
+          |> List.map card
+
+        let heading = Panel.heading [] [str "Search Results"]
+        let panel = Panel.panel [] (heading::panels)
+        panel
+
+    | None ->
+        div [] []
+
+
 let containerBox (model : Model) (dispatch : Msg -> unit) =
   Box.box' [ ]
     [ Form.Field.div [ Form.Field.IsGrouped ]
         [ Form.Control.p [ Form.Control.CustomClass "is-expanded"]
             [ Form.Input.text
                 [ Form.Input.Placeholder "Enter a Pokemon name"
-                  // Form.Input.Value (show model.SearchText)
-                  Form.Input.Props [ OnBlur (fun ev -> dispatch (SetSearchText !!ev.target?value))]] ]
+                  Form.Input.Props
+                    [ OnChange (fun ev -> dispatch (SetSearchText !!ev.target?value))
+                      AutoFocus true ]] ]
           Form.Control.p [ ]
             [ Button.a
                 [ Button.Color IsPrimary
-                  Button.OnClick (fun _ -> Search model.SearchText |> dispatch) ]
+                  Button.IsLoading model.Searching
+                  Button.Disabled model.Searching
+                  Button.OnClick (fun _ -> Search |> dispatch) ]
                 [ str "search" ] ] ] ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
@@ -107,15 +153,23 @@ let view (model : Model) (dispatch : Msg -> unit) =
                   navMenu ] ] ]
 
       Hero.body [ ]
-        [ Container.container [ Container.CustomClass Alignment.HasTextCentered ]
-            [ Column.column
+        [ Container.container [ Container.CustomClass Alignment.HasTextCentered ] [
+            Columns.columns [] [
+              Column.column
+                  [ Column.Width (Column.All, Column.Is6)
+                    Column.Offset (Column.All, Column.Is3) ]
+                  [ h1 [ ClassName "title" ]
+                      [ str "Proxy Croak Codes" ]
+                    div [ ClassName "subtitle" ]
+                      [ str "Find the codes you need to create your deck in Proxy Croak" ]
+                    containerBox model dispatch ] ]
+            div [ClassName "columns"] [
+              Column.column
                 [ Column.Width (Column.All, Column.Is6)
-                  Column.Offset (Column.All, Column.Is3) ]
-                [ h1 [ ClassName "title" ]
-                    [ str "Proxy Croak Codes" ]
-                  div [ ClassName "subtitle" ]
-                    [ str "Find the codes you need to create your deck in Proxy Croak" ]
-                  containerBox model dispatch ] ] ] ]
+                  Column.Offset (Column.All, Column.Is3) ] [
+                cards model dispatch
+              ]
+            ]]]]
 
 
 #if DEBUG
