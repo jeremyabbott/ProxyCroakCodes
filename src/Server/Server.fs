@@ -12,7 +12,6 @@ open Shared
 let clientPath = Path.Combine("..","Client") |> Path.GetFullPath
 let port = 8085us
 
-let getInitCounter () : Task<Counter> = task { return 42 }
 
 let browserRouter = scope {
   get "/" (htmlFile (Path.Combine(clientPath, "index.html")))
@@ -26,11 +25,6 @@ let config (services:IServiceCollection) =
   services
 
 let apiRouter = scope {
-  get "/init" (fun next ctx ->
-    task {
-      let! counter = getInitCounter()
-      return! Successful.OK counter next ctx
-    })
   forward "/search" ProxyCroakCodes.Controller.controller
 }
 

@@ -1,7 +1,5 @@
 namespace Shared
 
-type Counter = int
-
 type CardRequest = {
     Name : string
 }
