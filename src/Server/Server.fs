@@ -25,7 +25,7 @@ let config (services:IServiceCollection) =
   services
 
 let apiRouter = scope {
-  forward "/search" ProxyCroakCodes.Controller.controller
+  forward "/search" ProxyCroakCodes.Cards.Controller.controller
 }
 
 let mainRouter = scope {

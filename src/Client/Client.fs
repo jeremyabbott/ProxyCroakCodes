@@ -35,14 +35,9 @@ type Msg =
 | SearchFailed of exn
 
 let init () : Model * Cmd<Msg> =
-  let model = { CardResults = None; SearchText = None; Searching = false; ErrorMessage = "" }
-  let cmd = Cmd.none
-    // Cmd.ofPromise
-    //   (fetchAs<int> "/api/init")
-    //   []
-    //   (Ok >> Init)
-    //   (Error >> Init)
-  model, cmd
+    let model = { CardResults = None; SearchText = None; Searching = false; ErrorMessage = "" }
+    let cmd = Cmd.none
+    model, cmd
 
 let search text =
     promise {
@@ -105,10 +100,8 @@ let navMenu =
                   span [ ] [ str "View Source" ] ] ] ] ]
 
 let card (c: Card) =
-  let headerFormat c =
-    sprintf "%s %s" c.Name c.Number
-  Panel.block [Panel.Block.CustomClass "results"] [
-    headerFormat c |> str
+  Panel.block [] [
+    sprintf "%s %s %s" c.Name c.PtcgoCode c.Number |> str
   ]
 
 let cards (model : Model) (dispatch: Msg -> unit) =
@@ -120,12 +113,11 @@ let cards (model : Model) (dispatch: Msg -> unit) =
           |> List.map card
 
         let heading = Panel.heading [] [str "Search Results"]
-        let panel = Panel.panel [] (heading::panels)
+        let panel = Panel.panel [GenericOption.CustomClass "results"] (heading::panels)
         panel
 
     | None ->
         div [] []
-
 
 let containerBox (model : Model) (dispatch : Msg -> unit) =
   Box.box' [ ]
@@ -137,12 +129,12 @@ let containerBox (model : Model) (dispatch : Msg -> unit) =
                     [ OnChange (fun ev -> dispatch (SetSearchText !!ev.target?value))
                       AutoFocus true ]] ]
           Form.Control.p [ ]
-            [ Button.a
+            [ Button.button
                 [ Button.Color IsPrimary
                   Button.IsLoading model.Searching
                   Button.Disabled model.Searching
                   Button.OnClick (fun _ -> Search |> dispatch) ]
-                [ str "search" ] ] ] ]
+                [ str "Search" ] ] ] ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
   Hero.hero [ Hero.Color IsPrimary; Hero.IsFullHeight ]
