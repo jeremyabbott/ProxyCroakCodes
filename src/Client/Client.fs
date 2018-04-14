@@ -4,6 +4,7 @@ open Elmish
 open Elmish.React
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
+open Fable.Import.React
 open Fable.PowerPack
 open Fable.PowerPack.Fetch
 open Fable.Core.JsInterop
@@ -21,21 +22,27 @@ open Fulma.BulmaClasses.Bulma
 open Fulma.BulmaClasses.Bulma.Properties
 open Fulma.Extra.FontAwesome
 
+type CardModel = {
+    Selected: bool
+    Card: Card
+}
+
 type Model =
-    { CardResults : CardResponse option;
-      SearchText : string option;
-      Searching: bool;
-      ErrorMessage: string }
+    { CardResults : CardModel list option
+      SearchText : string option
+      Searching: bool
+      ErrorMessage: string
+      SelectedCards: Card list }
 
 type Msg =
 | Init
 | Search
 | SetSearchText of string
-| SearchSuccess of CardResponse
+| SearchSuccess of CardModel list
 | SearchFailed of exn
 
 let init () : Model * Cmd<Msg> =
-    let model = { CardResults = None; SearchText = None; Searching = false; ErrorMessage = "" }
+    let model = { CardResults = None; SearchText = None; Searching = false; ErrorMessage = ""; SelectedCards = [] }
     let cmd = Cmd.none
     model, cmd
 
@@ -50,7 +57,8 @@ let search text =
                       HttpRequestHeaders.ContentType "application/json" ]]
             let url = sprintf "/api/search/%s" s
             try
-                return! Fetch.fetchAs<CardResponse> url requestProperties
+                let! response = Fetch.fetchAs<CardResponse> url requestProperties
+                return response |> List.map (fun c -> { Selected = false; Card = c})
             with _ -> return! failwithf "Could not find %s" s
     }
 
@@ -59,7 +67,9 @@ let searchCmd text =
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match model, msg with
     | _, Search -> { model with Searching = true }, searchCmd model.SearchText
-    | _, SetSearchText s -> { model with SearchText = Some s}, Cmd.none
+    | _, SetSearchText s ->
+        let searchText = if s.Length = 0 then None else Some s
+        { model with SearchText = searchText}, Cmd.none
     | _, SearchSuccess cs -> { model with CardResults = Some cs; Searching = false}, Cmd.none
     | _, SearchFailed exn -> { model with ErrorMessage = exn.Message; Searching = false}, Cmd.none
     | _ -> model, Cmd.none
@@ -99,10 +109,11 @@ let navMenu =
                     [ Fa.icon Fa.I.Github; Fa.fw ]
                   span [ ] [ str "View Source" ] ] ] ] ]
 
-let card (c: Card) =
-  Panel.block [] [
-    sprintf "%s %s %s" c.Name c.PtcgoCode c.Number |> str
-  ]
+let card (c: CardModel) =
+    Panel.block [] [
+      Panel.icon [] [ i [ClassName "fa fa-plus-square"][]]
+      sprintf "%s %s %s" c.Card.Name c.Card.PtcgoCode c.Card.Number |> str
+    ]
 
 let cards (model : Model) (dispatch: Msg -> unit) =
     match model.CardResults with
@@ -120,21 +131,26 @@ let cards (model : Model) (dispatch: Msg -> unit) =
         div [] []
 
 let containerBox (model : Model) (dispatch : Msg -> unit) =
-  Box.box' [ ]
-    [ Form.Field.div [ Form.Field.IsGrouped ]
-        [ Form.Control.p [ Form.Control.CustomClass "is-expanded"]
-            [ Form.Input.text
-                [ Form.Input.Placeholder "Enter a Pokemon name"
-                  Form.Input.Props
-                    [ OnChange (fun ev -> dispatch (SetSearchText !!ev.target?value))
-                      AutoFocus true ]] ]
-          Form.Control.p [ ]
-            [ Button.button
-                [ Button.Color IsPrimary
-                  Button.IsLoading model.Searching
-                  Button.Disabled model.Searching
-                  Button.OnClick (fun _ -> Search |> dispatch) ]
-                [ str "Search" ] ] ] ]
+  Box.box' []
+    [ form [] [
+        Form.Field.div [ Form.Field.IsGrouped ]
+          [ Form.Control.p [ Form.Control.CustomClass "is-expanded"]
+              [ Form.Input.text
+                  [ Form.Input.Placeholder "Enter a Pokemon name"
+                    Form.Input.Props
+                      [ OnChange (fun ev ->
+                                      ev.preventDefault()
+                                      dispatch (SetSearchText !!ev.target?value))
+                        AutoFocus true ]] ]
+            Form.Control.p [ ]
+              [ Button.button
+                  [ Button.Color IsPrimary
+                    Button.IsLoading model.Searching
+                    Button.Disabled (model.Searching || model.SearchText.IsNone)
+                    Button.OnClick (fun ev -> ev.preventDefault(); Search |> dispatch) ]
+                  [ str "Search" ] ] ]
+        ]
+    ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
   Hero.hero [ Hero.Color IsPrimary; Hero.IsFullHeight ]
