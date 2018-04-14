@@ -1,10 +1,10 @@
-### 0.4.0 - 2018-04-09
-* Adds PTCGO set codes to card response
+### 0.5.0 - 2018-04-14
 
-* CardResponse is now a list
-
-* Moved code that doesn't require an HttpContext into Domain for now.
-
-* Still need to add TaskResult bind
-
-* Need to add application insights or something.
+* Adds support for selecting and viewing cards
+* To do:
+  * Need to get some help with UI improvements next
+  * Add set icon next to card name
+  * Add view card image functionality
+  * Add copy to clipboard functionality for selected cards
+  * Maybe selected card should have a quantity w/ default value 1?
+  * Weird jumping when switching tabs
