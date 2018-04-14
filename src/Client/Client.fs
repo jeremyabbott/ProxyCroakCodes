@@ -40,6 +40,8 @@ type Msg =
 | SetSearchText of string
 | SearchSuccess of CardModel list
 | SearchFailed of exn
+| CardSelected of CardModel
+| CardRemoved of CardModel
 
 let init () : Model * Cmd<Msg> =
     let model = { CardResults = None; SearchText = None; Searching = false; ErrorMessage = ""; SelectedCards = [] }
@@ -63,7 +65,28 @@ let search text =
     }
 
 let searchCmd text =
-  Cmd.ofPromise search text SearchSuccess SearchFailed
+    Cmd.ofPromise search text SearchSuccess SearchFailed
+
+let setCardSelected cards selectedCard =
+    match cards with
+        | Some mcr ->
+            mcr
+            |> List.map (fun sc ->
+                            match sc with
+                            | sc when sc = selectedCard -> { sc with Selected = not selectedCard.Selected }
+                            | _ -> sc) |> Some
+        | None -> None
+
+let handleSelected model selectedCard =
+    let updatedCardResults = setCardSelected model.CardResults selectedCard
+    let updatedSelected = selectedCard.Card :: model.SelectedCards
+    { model with CardResults = updatedCardResults; SelectedCards = updatedSelected}
+
+let handleRemoved model removedCard =
+    let updatedCardResults = setCardSelected model.CardResults removedCard
+    let updatedSelected = model.SelectedCards |> List.filter (fun c -> (c <> removedCard.Card))
+    { model with CardResults = updatedCardResults; SelectedCards = updatedSelected}
+
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match model, msg with
     | _, Search -> { model with Searching = true }, searchCmd model.SearchText
@@ -72,6 +95,8 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         { model with SearchText = searchText}, Cmd.none
     | _, SearchSuccess cs -> { model with CardResults = Some cs; Searching = false}, Cmd.none
     | _, SearchFailed exn -> { model with ErrorMessage = exn.Message; Searching = false}, Cmd.none
+    | _, CardSelected c -> handleSelected model c, Cmd.none
+    | _, CardRemoved c -> handleRemoved model c, Cmd.none
     | _ -> model, Cmd.none
 
 let show = function
@@ -109,9 +134,14 @@ let navMenu =
                     [ Fa.icon Fa.I.Github; Fa.fw ]
                   span [ ] [ str "View Source" ] ] ] ] ]
 
-let card (c: CardModel) =
+let card dispatch (c: CardModel)  =
+    let icon = if c.Selected then "fa fa-minus-square" else "fa fa-plus-square"
     Panel.block [] [
-      Panel.icon [] [ i [ClassName "fa fa-plus-square"][]]
+      Panel.icon [ GenericOption.Props
+                    [OnClick (fun _ -> if c.Selected then CardRemoved c
+                                       else CardSelected c
+                                       |> dispatch )]]
+                 [ i [ClassName icon][]]
       sprintf "%s %s %s" c.Card.Name c.Card.PtcgoCode c.Card.Number |> str
     ]
 
@@ -120,8 +150,7 @@ let cards (model : Model) (dispatch: Msg -> unit) =
     | Some cs ->
         let panels =
           cs
-          |> Seq.toList
-          |> List.map card
+          |> List.map (card dispatch)
 
         let heading = Panel.heading [] [str "Search Results"]
         let panel = Panel.panel [GenericOption.CustomClass "results"] (heading::panels)
