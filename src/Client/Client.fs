@@ -4,7 +4,6 @@ open Elmish
 open Elmish.React
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
-open Fable.Import.React
 open Fable.PowerPack
 open Fable.PowerPack.Fetch
 open Fable.Core.JsInterop
@@ -14,11 +13,8 @@ open Shared
 open Fulma
 open Fulma.Layouts
 open Fulma.Elements
-open Fulma.Elements.Form
 open Fulma.Components
-open Fulma.BulmaClasses
 
-open Fulma.BulmaClasses.Bulma
 open Fulma.BulmaClasses.Bulma.Properties
 open Fulma.Extra.FontAwesome
 
@@ -27,12 +23,31 @@ type CardModel = {
     Card: Card
 }
 
+type TabType =
+| CardSearchResults
+| SelectedCards
+
+type TabModel = {
+    Label: string
+    Type: TabType
+}
+
+let searchResultsTab = { Label = "Search Results"; Type = CardSearchResults }
+let selectedCardsTab = { Label = "Selected Cards"; Type = SelectedCards }
+
+let tabs = [
+    searchResultsTab
+    selectedCardsTab
+]
+
 type Model =
     { CardResults : CardModel list option
       SearchText : string option
       Searching: bool
       ErrorMessage: string
-      SelectedCards: Card list }
+      SelectedCards: Card list
+      Tabs: TabModel list
+      ActiveTab: TabModel }
 
 type Msg =
 | Init
@@ -42,9 +57,17 @@ type Msg =
 | SearchFailed of exn
 | CardSelected of CardModel
 | CardRemoved of CardModel
+| TabSelected of TabModel
 
 let init () : Model * Cmd<Msg> =
-    let model = { CardResults = None; SearchText = None; Searching = false; ErrorMessage = ""; SelectedCards = [] }
+    let model =
+        { CardResults = None
+          SearchText = None
+          Searching = false
+          ErrorMessage = ""
+          SelectedCards = []
+          Tabs = tabs
+          ActiveTab = searchResultsTab }
     let cmd = Cmd.none
     model, cmd
 
@@ -97,6 +120,7 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | _, SearchFailed exn -> { model with ErrorMessage = exn.Message; Searching = false}, Cmd.none
     | _, CardSelected c -> handleSelected model c, Cmd.none
     | _, CardRemoved c -> handleRemoved model c, Cmd.none
+    | _, TabSelected t -> { model with ActiveTab = t }, Cmd.none
     | _ -> model, Cmd.none
 
 let show = function
@@ -134,6 +158,9 @@ let navMenu =
                     [ Fa.icon Fa.I.Github; Fa.fw ]
                   span [ ] [ str "View Source" ] ] ] ] ]
 
+let proxyCroakCodeFormatter (c : Card) =
+      sprintf "%s %s %s" c.Name c.PtcgoCode c.Number |> str
+
 let card dispatch (c: CardModel)  =
     let icon = if c.Selected then "fa fa-minus-square" else "fa fa-plus-square"
     Panel.block [] [
@@ -142,22 +169,43 @@ let card dispatch (c: CardModel)  =
                                        else CardSelected c
                                        |> dispatch )]]
                  [ i [ClassName icon][]]
-      sprintf "%s %s %s" c.Card.Name c.Card.PtcgoCode c.Card.Number |> str
+      proxyCroakCodeFormatter c.Card
     ]
 
-let cards (model : Model) (dispatch: Msg -> unit) =
+let cardResultsView (model : Model) (dispatch: Msg -> unit) =
     match model.CardResults with
     | Some cs ->
-        let panels =
-          cs
-          |> List.map (card dispatch)
-
-        let heading = Panel.heading [] [str "Search Results"]
-        let panel = Panel.panel [GenericOption.CustomClass "results"] (heading::panels)
-        panel
-
+        cs |> List.map (card dispatch)
     | None ->
-        div [] []
+        [Panel.block [] [str "There are no search results to display"]]
+
+let selectedCardsView  model dispatch =
+    match model.SelectedCards with
+    | [] -> [ Panel.block [] [str "You haven't selected any cards!"] ]
+    | scs ->
+        scs
+        |> List.map (fun sc -> Panel.block [] [ proxyCroakCodeFormatter sc])
+
+let tabsView (model: Model) (dispatch: Msg -> unit) =
+    let active ta t =
+        ta = t
+    let tabView t =
+        Panel.tab
+            [ Panel.Tab.IsActive (active model.ActiveTab t)
+              Panel.Tab.Props [OnClick (fun _ -> TabSelected t |> dispatch)]]
+            [ str t.Label ]
+    model.Tabs
+    |> List.map tabView
+
+let panelsView model dispatch =
+    let activePanel =
+        match model.ActiveTab.Type with
+        | CardSearchResults -> cardResultsView model dispatch
+        | SelectedCards -> selectedCardsView model dispatch
+
+    let ts = Panel.tabs [] (tabsView model dispatch)
+    let panels = Panel.panel [GenericOption.CustomClass "results"] (ts::activePanel)
+    panels
 
 let containerBox (model : Model) (dispatch : Msg -> unit) =
   Box.box' []
@@ -204,7 +252,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
               Column.column
                 [ Column.Width (Column.All, Column.Is6)
                   Column.Offset (Column.All, Column.Is3) ] [
-                cards model dispatch
+                panelsView model dispatch
               ]
             ]]]]
 

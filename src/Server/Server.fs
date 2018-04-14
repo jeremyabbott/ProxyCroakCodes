@@ -1,13 +1,10 @@
 open System.IO
-open System.Threading.Tasks
 
 open Giraffe
 open Saturn
 
 open Giraffe.Serialization
 open Microsoft.Extensions.DependencyInjection
-
-open Shared
 
 let clientPath = Path.Combine("..","Client") |> Path.GetFullPath
 let port = 8085us
