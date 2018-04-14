@@ -14,12 +14,16 @@ open Fulma
 open Fulma.Layouts
 open Fulma.Elements
 open Fulma.Components
-
 open Fulma.BulmaClasses.Bulma.Properties
 open Fulma.Extra.FontAwesome
 
 type CardModel = {
     Selected: bool
+    Card: Card
+}
+
+type SelectedCardModel = {
+    Quantity: int
     Card: Card
 }
 
@@ -32,6 +36,16 @@ type TabModel = {
     Type: TabType
 }
 
+type Model =
+    { CardResults : CardModel list option
+      SearchText : string option
+      Searching: bool
+      ErrorMessage: string
+      SelectedCards: SelectedCardModel list
+      Tabs: TabModel list
+      ActiveTab: TabModel }
+
+
 let searchResultsTab = { Label = "Search Results"; Type = CardSearchResults }
 let selectedCardsTab = { Label = "Selected Cards"; Type = SelectedCards }
 
@@ -39,15 +53,6 @@ let tabs = [
     searchResultsTab
     selectedCardsTab
 ]
-
-type Model =
-    { CardResults : CardModel list option
-      SearchText : string option
-      Searching: bool
-      ErrorMessage: string
-      SelectedCards: Card list
-      Tabs: TabModel list
-      ActiveTab: TabModel }
 
 type Msg =
 | Init
@@ -102,12 +107,14 @@ let setCardSelected cards selectedCard =
 
 let handleSelected model selectedCard =
     let updatedCardResults = setCardSelected model.CardResults selectedCard
-    let updatedSelected = selectedCard.Card :: model.SelectedCards
+
+    let updatedSelected =
+        { Card = selectedCard.Card; Quantity = 1 }  :: model.SelectedCards
     { model with CardResults = updatedCardResults; SelectedCards = updatedSelected}
 
 let handleRemoved model removedCard =
     let updatedCardResults = setCardSelected model.CardResults removedCard
-    let updatedSelected = model.SelectedCards |> List.filter (fun c -> (c <> removedCard.Card))
+    let updatedSelected = model.SelectedCards |> List.filter (fun c -> (c.Card <> removedCard.Card))
     { model with CardResults = updatedCardResults; SelectedCards = updatedSelected}
 
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
@@ -159,7 +166,7 @@ let navMenu =
                   span [ ] [ str "View Source" ] ] ] ] ]
 
 let proxyCroakCodeFormatter (c : Card) =
-      sprintf "%s %s %s" c.Name c.PtcgoCode c.Number |> str
+      sprintf "%s %s %s" c.Name c.PtcgoCode c.Number
 
 let card dispatch (c: CardModel)  =
     let icon = if c.Selected then "fa fa-minus-square" else "fa fa-plus-square"
@@ -169,7 +176,7 @@ let card dispatch (c: CardModel)  =
                                        else CardSelected c
                                        |> dispatch )]]
                  [ i [ClassName icon][]]
-      proxyCroakCodeFormatter c.Card
+      proxyCroakCodeFormatter c.Card |> str
     ]
 
 let cardResultsView (model : Model) (dispatch: Msg -> unit) =
@@ -180,11 +187,38 @@ let cardResultsView (model : Model) (dispatch: Msg -> unit) =
         [Panel.block [] [str "There are no search results to display"]]
 
 let selectedCardsView  model dispatch =
+
     match model.SelectedCards with
     | [] -> [ Panel.block [] [str "You haven't selected any cards!"] ]
     | scs ->
+        let quantityElement sc dispatch =
+            sc.Quantity |> sprintf "%d" |> str
+
+        let deleteButton sc dispatch =
+            Button.button
+                [ Button.Color IsDanger ]
+                [ Icon.faIcon [ ] [ Fa.icon Fa.I.Trash; Fa.faLg ]
+                  span [] [ str "  Delete" ] ]
+
+        let incrementButton sc dispatch =
+            Button.button
+                [ Button.Color IsPrimary]
+                [ Icon.faIcon [ ] [ Fa.icon Fa.I.PlusSquare; Fa.faLg ] ]
+
+        let decrementButton sc dispatch =
+            Button.button
+                [ Button.Color IsPrimary ]
+                [ Icon.faIcon [ ] [ Fa.icon Fa.I.MinusSquare; Fa.faLg ] ]
+
+        let formattedCodeElement c = proxyCroakCodeFormatter c |> str
         scs
-        |> List.map (fun sc -> Panel.block [] [ proxyCroakCodeFormatter sc])
+        |> List.map (fun sc ->
+                        Panel.block [] [
+                                quantityElement sc dispatch
+                                formattedCodeElement sc.Card
+                                incrementButton sc dispatch
+                                decrementButton sc dispatch
+                                deleteButton sc dispatch])
 
 let tabsView (model: Model) (dispatch: Msg -> unit) =
     let active ta t =
