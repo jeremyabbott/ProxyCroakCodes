@@ -1,6 +1,7 @@
-### 0.5.0 - 2018-04-14
+### 0.6.0 - 2018-04-14
 
-* Adds support for selecting and viewing cards
+* Adds support for incrementing/derementing card quantities
+* Verifies that if a quantity is 1 and decremented, that it is removed from the list
 * To do:
   * Need to get some help with UI improvements next
   * Add set icon next to card name
