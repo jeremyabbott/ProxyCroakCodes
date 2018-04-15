@@ -20,11 +20,7 @@ open Fulma.Extra.FontAwesome
 type CardModel = {
     Selected: bool
     Card: Card
-}
-
-type SelectedCardModel = {
     Quantity: int
-    Card: Card
 }
 
 type TabType =
@@ -41,7 +37,7 @@ type Model =
       SearchText : string option
       Searching: bool
       ErrorMessage: string
-      SelectedCards: SelectedCardModel list
+      SelectedCards: CardModel list
       Tabs: TabModel list
       ActiveTab: TabModel }
 
@@ -63,6 +59,8 @@ type Msg =
 | CardSelected of CardModel
 | CardRemoved of CardModel
 | TabSelected of TabModel
+| QuantityIncremented of CardModel
+| QuantityDecremented of CardModel
 
 let init () : Model * Cmd<Msg> =
     let model =
@@ -88,7 +86,7 @@ let search text =
             let url = sprintf "/api/search/%s" s
             try
                 let! response = Fetch.fetchAs<CardResponse> url requestProperties
-                return response |> List.map (fun c -> { Selected = false; Card = c})
+                return response |> List.map (fun c -> { Selected = false; Card = c; Quantity = 1})
             with _ -> return! failwithf "Could not find %s" s
     }
 
@@ -109,13 +107,35 @@ let handleSelected model selectedCard =
     let updatedCardResults = setCardSelected model.CardResults selectedCard
 
     let updatedSelected =
-        { Card = selectedCard.Card; Quantity = 1 }  :: model.SelectedCards
+        { Card = selectedCard.Card; Quantity = 1; Selected = true }  :: model.SelectedCards
     { model with CardResults = updatedCardResults; SelectedCards = updatedSelected}
 
 let handleRemoved model removedCard =
     let updatedCardResults = setCardSelected model.CardResults removedCard
     let updatedSelected = model.SelectedCards |> List.filter (fun c -> (c.Card <> removedCard.Card))
     { model with CardResults = updatedCardResults; SelectedCards = updatedSelected}
+
+let handleIncrement model card =
+    let updatedCards =
+        model.SelectedCards
+        |> List.map (fun c ->
+            if c <> card then c
+            else
+                { c with Quantity = c.Quantity + 1})
+    {model with SelectedCards = updatedCards}
+
+let handleDecrement model card =
+    let updatedCards =
+        model.SelectedCards
+        |> List.map (fun c ->
+            if c <> card then c
+            else { c with Quantity = c.Quantity - 1})
+        |> List.filter (fun c -> c.Quantity > 0)
+    let updatedResults =
+        model.CardResults.Value
+        |> List.map (fun c ->
+            if c.Quantity = 1 && c = card then { c with Selected = false} else c)
+    { model with SelectedCards = updatedCards; CardResults = Some updatedResults }
 
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match model, msg with
@@ -128,6 +148,8 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | _, CardSelected c -> handleSelected model c, Cmd.none
     | _, CardRemoved c -> handleRemoved model c, Cmd.none
     | _, TabSelected t -> { model with ActiveTab = t }, Cmd.none
+    | _, QuantityIncremented c -> handleIncrement model c, Cmd.none
+    | _, QuantityDecremented c -> handleDecrement model c, Cmd.none
     | _ -> model, Cmd.none
 
 let show = function
@@ -169,14 +191,18 @@ let proxyCroakCodeFormatter (c : Card) =
       sprintf "%s %s %s" c.Name c.PtcgoCode c.Number
 
 let card dispatch (c: CardModel)  =
-    let icon = if c.Selected then "fa fa-minus-square" else "fa fa-plus-square"
-    Panel.block [] [
-      Panel.icon [ GenericOption.Props
-                    [OnClick (fun _ -> if c.Selected then CardRemoved c
+    let icon = if c.Selected then Fa.I.MinusSquare else Fa.I.PlusSquare
+    let color = if c.Selected then IsDanger else IsPrimary
+    let clickHandler = (fun _ -> if c.Selected then CardRemoved c
                                        else CardSelected c
-                                       |> dispatch )]]
-                 [ i [ClassName icon][]]
-      proxyCroakCodeFormatter c.Card |> str
+                                       |> dispatch )
+    Panel.block [] [
+        div [ClassName "is-grouped"] [
+            Button.button
+                [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
+                [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ] ]
+        div [] [
+            proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str]
     ]
 
 let cardResultsView (model : Model) (dispatch: Msg -> unit) =
@@ -191,34 +217,51 @@ let selectedCardsView  model dispatch =
     match model.SelectedCards with
     | [] -> [ Panel.block [] [str "You haven't selected any cards!"] ]
     | scs ->
-        let quantityElement sc dispatch =
-            sc.Quantity |> sprintf "%d" |> str
+        let quantityElement sc =
+            sc.Quantity |> sprintf "%d"
 
         let deleteButton sc dispatch =
             Button.button
-                [ Button.Color IsDanger ]
-                [ Icon.faIcon [ ] [ Fa.icon Fa.I.Trash; Fa.faLg ]
-                  span [] [ str "  Delete" ] ]
+                [ Button.Color IsDanger;
+                  Button.CustomClass "control"
+                  Button.OnClick (fun _ -> CardRemoved sc |> dispatch)]
+                [ Icon.faIcon [ ] [ Fa.icon Fa.I.Trash; Fa.faLg ] ]
 
         let incrementButton sc dispatch =
             Button.button
-                [ Button.Color IsPrimary]
+                [ Button.Color IsPrimary
+                  Button.CustomClass "control"
+                  Button.OnClick (fun _ -> QuantityIncremented sc |> dispatch)]
                 [ Icon.faIcon [ ] [ Fa.icon Fa.I.PlusSquare; Fa.faLg ] ]
 
         let decrementButton sc dispatch =
             Button.button
-                [ Button.Color IsPrimary ]
+                [ Button.Color IsPrimary
+                  Button.CustomClass "control"
+                  Button.OnClick (fun _ -> QuantityDecremented sc |> dispatch) ]
                 [ Icon.faIcon [ ] [ Fa.icon Fa.I.MinusSquare; Fa.faLg ] ]
 
-        let formattedCodeElement c = proxyCroakCodeFormatter c |> str
+        let formattedCodeElement c = proxyCroakCodeFormatter c
+
+        let columns lc rc =
+            Columns.columns [Columns.IsMobile] [
+                Column.column [Column.Width (Column.All, Column.IsTwoFifths)] [div [ClassName "field is-grouped"] lc]
+                Column.column [Column.Width (Column.All, Column.IsThreeFifths)] [div [] rc]
+            ]
+
+        let panelBlock dispatch sc =
+            let text =
+                sprintf "%s %s" (quantityElement sc) (formattedCodeElement sc.Card)
+                |> str
+            Panel.block [] [
+                columns
+                    [incrementButton sc dispatch
+                     decrementButton sc dispatch
+                     deleteButton sc dispatch]
+                    [span [ClassName "has-text-left"] [text]]]
+
         scs
-        |> List.map (fun sc ->
-                        Panel.block [] [
-                                quantityElement sc dispatch
-                                formattedCodeElement sc.Card
-                                incrementButton sc dispatch
-                                decrementButton sc dispatch
-                                deleteButton sc dispatch])
+        |> List.map (panelBlock dispatch)
 
 let tabsView (model: Model) (dispatch: Msg -> unit) =
     let active ta t =
