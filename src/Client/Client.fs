@@ -16,6 +16,8 @@ open Fulma.Elements
 open Fulma.Components
 open Fulma.BulmaClasses.Bulma.Properties
 open Fulma.Extra.FontAwesome
+open Fable.Import.React
+open Fable.Import
 
 type CardModel = {
     Selected: bool
@@ -156,36 +158,40 @@ let show = function
 | Some x -> string x
 | None -> "Enter a Pokemon name"
 
+
 let navBrand =
-  Navbar.Brand.div [ ]
-    [ Navbar.Item.a
-        [ Navbar.Item.Props [ Href "https://safe-stack.github.io/" ]
-          Navbar.Item.IsActive true ]
-        [ img [ Src "https://safe-stack.github.io/images/safe_top.png"
-                Alt "Logo" ] ]
-      Navbar.burger [ ]
-        [ span [ ] [ ]
-          span [ ] [ ]
-          span [ ] [ ] ] ]
+    Navbar.Brand.div [] [
+        Navbar.Item.a [ Navbar.Item.Props [ Href "https://safe-stack.github.io/" ] ]
+            [ img [ Src "/images/Pokeball-Transparent-Background.png"; Alt "Logo" ] ]
+        Navbar.burger [ ] [
+            span [ ] [ ]
+            span [ ] [ ]
+            span [ ] [ ]
+        ]
+    ]
 
 let navMenu =
-  Navbar.menu [ ]
-    [ Navbar.End.div [ ]
-        [ Navbar.Item.a [ ]
-            [ str "Home" ]
-          Navbar.Item.a [ ]
-            [ str "Examples" ]
-          Navbar.Item.a [ ]
-            [ str "Documentation" ]
-          Navbar.Item.div [ ]
-            [ Button.a
-                [ Button.Color IsWhite
-                  Button.IsOutlined
-                  Button.Size IsSmall
-                  Button.Props [ Href "https://github.com/SAFE-Stack/SAFE-template" ] ]
-                [ Icon.faIcon [ ]
-                    [ Fa.icon Fa.I.Github; Fa.fw ]
-                  span [ ] [ str "View Source" ] ] ] ] ]
+    Navbar.menu [] [
+        Navbar.Start.a [] [
+            Navbar.Item.a [] [str "Proxy Croak Codes"]
+        ]
+        Navbar.End.div [] [
+            Navbar.Item.div [] [
+                Button.a
+                    [ Button.IsOutlined
+                      Button.Size IsSmall
+                      Button.Props [ Href "https://github.com/jeremyabbott/ProxyCroakCodes" ] ]
+                    [ Icon.faIcon [ ]
+                        [ Fa.icon Fa.I.Github; Fa.fw ]
+                      span [ ] [ str "View Source" ] ]
+            ]
+        ]
+    ]
+let navBar =
+    Navbar.navbar [] [
+        navBrand
+        navMenu
+    ]
 
 let proxyCroakCodeFormatter (c : Card) =
       sprintf "%s %s %s" c.Name c.PtcgoCode c.Number
@@ -196,26 +202,30 @@ let card dispatch (c: CardModel)  =
     let clickHandler = (fun _ -> if c.Selected then CardRemoved c
                                        else CardSelected c
                                        |> dispatch )
-    Panel.block [] [
-        div [ClassName "is-grouped"] [
+    [
+        Column.column [Column.Width(Column.All, Column.IsFourFifths)] [
+             proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str
+        ]
+        Column.column [Column.Width(Column.All, Column.IsOneFifth)] [
             Button.button
                 [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
-                [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ] ]
-        div [] [
-            proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str]
+                [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+        ]
     ]
 
 let cardResultsView (model : Model) (dispatch: Msg -> unit) =
     match model.CardResults with
     | Some cs ->
-        cs |> List.map (card dispatch)
+        cs
+        |> List.map (card dispatch)
+        |> List.collect id
+        |> Columns.columns [ Columns.IsMobile; Columns.IsMultiline]
     | None ->
-        [Panel.block [] [str "There are no search results to display"]]
+        p [] [str "There are no search results to display"]
 
 let selectedCardsView  model dispatch =
-
     match model.SelectedCards with
-    | [] -> [ Panel.block [] [str "You haven't selected any cards!"] ]
+    | [] -> p [] [str "You haven't selected any cards!"]
     | scs ->
         let quantityElement sc =
             sc.Quantity |> sprintf "%d"
@@ -243,95 +253,88 @@ let selectedCardsView  model dispatch =
 
         let formattedCodeElement c = proxyCroakCodeFormatter c
 
-        let columns lc rc =
-            Columns.columns [Columns.IsMobile] [
-                Column.column [Column.Width (Column.All, Column.IsTwoFifths)] [div [ClassName "field is-grouped"] lc]
-                Column.column [Column.Width (Column.All, Column.IsThreeFifths)] [div [] rc]
+        let cardRow sc =
+            [
+                Column.column
+                    [ Column.Width(Column.Mobile, Column.Is6)
+                      Column.Width(Column.Tablet, Column.Is8)
+                      Column.Width(Column.Desktop, Column.Is10)]
+                    [ sprintf "%s %s" (quantityElement sc) (formattedCodeElement sc.Card) |> str ]
+                Column.column [Column.Width(Column.All, Column.IsNarrow)] [
+                    incrementButton sc dispatch
+                    decrementButton sc dispatch
+                    deleteButton sc dispatch
+                ]
             ]
 
-        let panelBlock dispatch sc =
-            let text =
-                sprintf "%s %s" (quantityElement sc) (formattedCodeElement sc.Card)
-                |> str
-            Panel.block [] [
-                columns
-                    [incrementButton sc dispatch
-                     decrementButton sc dispatch
-                     deleteButton sc dispatch]
-                    [span [ClassName "has-text-left"] [text]]]
-
         scs
-        |> List.map (panelBlock dispatch)
+        |> List.map cardRow
+        |> List.collect id
+        |> Columns.columns [Columns.IsMultiline; Columns.IsMobile]
 
 let tabsView (model: Model) (dispatch: Msg -> unit) =
     let active ta t =
         ta = t
     let tabView t =
-        Panel.tab
-            [ Panel.Tab.IsActive (active model.ActiveTab t)
-              Panel.Tab.Props [OnClick (fun _ -> TabSelected t |> dispatch)]]
-            [ str t.Label ]
+        Tabs.tab
+            [ Tabs.Tab.IsActive (active model.ActiveTab t)
+              Tabs.Tab.Props [OnClick (fun _ -> TabSelected t |> dispatch)]]
+            [ a [] [str t.Label] ]
     model.Tabs
     |> List.map tabView
+    |> Tabs.tabs []
 
-let panelsView model dispatch =
-    let activePanel =
-        match model.ActiveTab.Type with
-        | CardSearchResults -> cardResultsView model dispatch
-        | SelectedCards -> selectedCardsView model dispatch
-
-    let ts = Panel.tabs [] (tabsView model dispatch)
-    let panels = Panel.panel [GenericOption.CustomClass "results"] (ts::activePanel)
-    panels
+let contentView model dispatch =
+    match model with
+    | { CardResults = None; SelectedCards = []} -> div [ClassName "content"] []
+    | _ ->
+        let tabs = tabsView model dispatch
+        let content =
+            match model.ActiveTab.Type with
+            | CardSearchResults -> cardResultsView model dispatch
+            | SelectedCards -> selectedCardsView model dispatch
+        Box.box' [GenericOption.CustomClass "content"] [tabs;content]
 
 let containerBox (model : Model) (dispatch : Msg -> unit) =
-  Box.box' []
-    [ form [] [
-        Form.Field.div [ Form.Field.IsGrouped ]
-          [ Form.Control.p [ Form.Control.CustomClass "is-expanded"]
-              [ Form.Input.text
-                  [ Form.Input.Placeholder "Enter a Pokemon name"
-                    Form.Input.Props
-                      [ OnChange (fun ev ->
-                                      ev.preventDefault()
-                                      dispatch (SetSearchText !!ev.target?value))
-                        AutoFocus true ]] ]
-            Form.Control.p [ ]
-              [ Button.button
-                  [ Button.Color IsPrimary
-                    Button.IsLoading model.Searching
-                    Button.Disabled (model.Searching || model.SearchText.IsNone)
-                    Button.OnClick (fun ev -> ev.preventDefault(); Search |> dispatch) ]
-                  [ str "Search" ] ] ]
+    Box.box' []
+        [
+            Heading.h1 [ Heading.Option.Is3; Heading.Option.CustomClass "has-text-centered" ] [str "Proxy Croak Codes"]
+            form [] [
+                Form.Field.div [ Form.Field.HasAddons;Form.Field.HasAddonsCentered] [
+                    Form.Control.div [ ] [
+                        Form.Input.text
+                            [ Form.Input.Placeholder "Enter a Pokemon name"
+                              Form.Input.Props
+                                [ OnChange (fun ev ->
+                                              ev.preventDefault()
+                                              dispatch (SetSearchText !!ev.target?value))
+                                  AutoFocus true ]
+                            ]
+                    ]
+                    Form.Control.div [ ] [
+                        Button.button
+                          [ Button.Color IsPrimary
+                            Button.IsLoading model.Searching
+                            Button.Disabled (model.Searching || model.SearchText.IsNone)
+                            Button.OnClick (fun ev -> ev.preventDefault(); Search |> dispatch) ]
+                          [ str "Search" ]
+                    ]
+                ]
+            ]
         ]
-    ]
 
 let view (model : Model) (dispatch : Msg -> unit) =
-  Hero.hero [ Hero.Color IsPrimary; Hero.IsFullHeight ]
-    [ Hero.head [ ]
-        [ Navbar.navbar [ ]
-            [ Container.container [ ]
-                [ navBrand
-                  navMenu ] ] ]
-
-      Hero.body [ ]
-        [ Container.container [ Container.CustomClass Alignment.HasTextCentered ] [
-            Columns.columns [] [
-              Column.column
-                  [ Column.Width (Column.All, Column.Is6)
-                    Column.Offset (Column.All, Column.Is3) ]
-                  [ h1 [ ClassName "title" ]
-                      [ str "Proxy Croak Codes" ]
-                    div [ ClassName "subtitle" ]
-                      [ str "Find the codes you need to create your deck in Proxy Croak" ]
-                    containerBox model dispatch ] ]
-            div [ClassName "columns"] [
-              Column.column
-                [ Column.Width (Column.All, Column.Is6)
-                  Column.Offset (Column.All, Column.Is3) ] [
-                panelsView model dispatch
-              ]
-            ]]]]
+    div [] [
+        navBar
+        containerBox model dispatch
+        contentView model dispatch
+    ]
+//   let active ta t =
+//         ta = t
+//   Tabs.tabs [] [
+//                 for tab in model.Tabs do
+//                     yield Tabs.tab [ Tabs.Tab.IsActive (active model.ActiveTab tab) ] [a [] [str tab.Label]]
+//             ]
 
 
 #if DEBUG

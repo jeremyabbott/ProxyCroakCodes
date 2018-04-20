@@ -1,7 +1,6 @@
-### 0.6.0 - 2018-04-14
+### 0.7.0 - 2018-04-19
 
-* Adds support for incrementing/derementing card quantities
-* Verifies that if a quantity is 1 and decremented, that it is removed from the list
+* Makes UI Suck a Little Less
 * To do:
   * Need to get some help with UI improvements next
   * Add set icon next to card name
