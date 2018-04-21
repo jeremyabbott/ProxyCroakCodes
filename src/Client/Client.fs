@@ -158,11 +158,10 @@ let show = function
 | Some x -> string x
 | None -> "Enter a Pokemon name"
 
-
 let navBrand =
     Navbar.Brand.div [] [
-        Navbar.Item.a [ Navbar.Item.Props [ Href "https://safe-stack.github.io/" ] ]
-            [ img [ Src "/images/Pokeball-Transparent-Background.png"; Alt "Logo" ] ]
+        Navbar.Item.a [ Navbar.Item.Props [ Href "/" ] ]
+            [ img [ Src "/Images/Pokeball-Transparent-Background.png"; Alt "Logo" ] ]
         Navbar.burger [ ] [
             span [ ] [ ]
             span [ ] [ ]
@@ -206,10 +205,13 @@ let card dispatch (c: CardModel)  =
         Column.column [Column.Width(Column.All, Column.IsFourFifths)] [
              proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str
         ]
-        Column.column [Column.Width(Column.All, Column.IsOneFifth)] [
-            Button.button
-                [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
-                [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+        Column.column [Column.Width(Column.All, Column.IsNarrow)] [
+            span [ClassName "is-pulled-right"] [
+                Button.button
+                    [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control is-pulled-right"]
+                    [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+            ]
+
         ]
     ]
 
@@ -219,7 +221,7 @@ let cardResultsView (model : Model) (dispatch: Msg -> unit) =
         cs
         |> List.map (card dispatch)
         |> List.collect id
-        |> Columns.columns [ Columns.IsMobile; Columns.IsMultiline]
+        |> Columns.columns [Columns.IsMobile; Columns.IsMultiline]
     | None ->
         p [] [str "There are no search results to display"]
 
@@ -257,13 +259,19 @@ let selectedCardsView  model dispatch =
             [
                 Column.column
                     [ Column.Width(Column.Mobile, Column.Is6)
-                      Column.Width(Column.Tablet, Column.Is8)
-                      Column.Width(Column.Desktop, Column.Is10)]
+                      Column.Width(Column.Tablet, Column.Is6)
+                      Column.Width(Column.Desktop, Column.Is9) ]
                     [ sprintf "%s %s" (quantityElement sc) (formattedCodeElement sc.Card) |> str ]
-                Column.column [Column.Width(Column.All, Column.IsNarrow)] [
-                    incrementButton sc dispatch
-                    decrementButton sc dispatch
-                    deleteButton sc dispatch
+                Column.column
+                    [ Column.Width(Column.Mobile, Column.Is6)
+                      Column.Width(Column.Tablet, Column.Is6)
+                      Column.Width(Column.Desktop, Column.Is3)] [
+                    span [ClassName "is-pulled-right"] [
+                        incrementButton sc dispatch
+                        decrementButton sc dispatch
+                        deleteButton sc dispatch
+                    ]
+
                 ]
             ]
 

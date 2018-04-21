@@ -1,6 +1,7 @@
-### 0.7.0 - 2018-04-19
+### 0.8.0 - 2018-04-21
 
-* Makes UI Suck a Little Less
+* Fixes logo not loading. Fixes some column layout stuff.
+* Adds favicon. Fixes brand-logo going to safe-template
 * To do:
   * Need to get some help with UI improvements next
   * Add set icon next to card name
