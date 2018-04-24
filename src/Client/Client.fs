@@ -18,6 +18,7 @@ open Fulma.BulmaClasses.Bulma.Properties
 open Fulma.Extra.FontAwesome
 open Fable.Import.React
 open Fable.Import
+open Fable.Helpers.React.ReactiveComponents
 
 type CardModel = {
     Selected: bool
@@ -34,8 +35,13 @@ type TabModel = {
     Type: TabType
 }
 
+type DisplayMode =
+| Text
+| Images
+
 type Model =
     { CardResults : CardModel list option
+      DisplayMode : DisplayMode
       SearchText : string option
       Searching: bool
       ErrorMessage: string
@@ -63,10 +69,12 @@ type Msg =
 | TabSelected of TabModel
 | QuantityIncremented of CardModel
 | QuantityDecremented of CardModel
+| SetDisplayMode of DisplayMode
 
 let init () : Model * Cmd<Msg> =
     let model =
         { CardResults = None
+          DisplayMode = Text
           SearchText = None
           Searching = false
           ErrorMessage = ""
@@ -152,6 +160,7 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | _, TabSelected t -> { model with ActiveTab = t }, Cmd.none
     | _, QuantityIncremented c -> handleIncrement model c, Cmd.none
     | _, QuantityDecremented c -> handleDecrement model c, Cmd.none
+    | _, SetDisplayMode m -> { model with DisplayMode = m}, Cmd.none
     | _ -> model, Cmd.none
 
 let show = function
@@ -195,31 +204,64 @@ let navBar =
 let proxyCroakCodeFormatter (c : Card) =
       sprintf "%s %s %s" c.Name c.PtcgoCode c.Number
 
-let card dispatch (c: CardModel)  =
+let imageCard dispatch (c: CardModel) =
     let icon = if c.Selected then Fa.I.MinusSquare else Fa.I.PlusSquare
     let color = if c.Selected then IsDanger else IsPrimary
     let clickHandler = (fun _ -> if c.Selected then CardRemoved c
                                        else CardSelected c
                                        |> dispatch )
     [
-        Column.column [Column.Width(Column.All, Column.IsFourFifths)] [
-             proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str
-        ]
-        Column.column [Column.Width(Column.All, Column.IsNarrow)] [
-            span [ClassName "is-pulled-right"] [
-                Button.button
-                    [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control is-pulled-right"]
-                    [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
-            ]
+        Column.column [
+            Column.Width(Column.Desktop, Column.IsOneQuarter)
+            Column.Width(Column.Mobile, Column.IsFull)
+            ] [
 
+            Card.card [] [
+                Card.header [] [
+                    p [ClassName "card-header-title"] [ proxyCroakCodeFormatter c.Card |> str]
+                ]
+
+                Card.content [GenericOption.CustomClass "is-flex is-horizontal-center"] [
+                    Image.image [] [
+                        img [ Src c.Card.ImageUrl]
+                    ]
+                ]
+                Card.footer [] [
+                        Button.a
+                            [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "card-footer-item"]
+                            [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+                ]
+            ]
         ]
     ]
+
+let textCard dispatch (c: CardModel) =
+    let icon = if c.Selected then Fa.I.MinusSquare else Fa.I.PlusSquare
+    let color = if c.Selected then IsDanger else IsPrimary
+    let clickHandler = (fun _ -> if c.Selected then CardRemoved c
+                                       else CardSelected c
+                                       |> dispatch )
+    [
+        Column.column [Column.Width(Column.All, Column.IsFull)] [
+             span [ClassName "is-pulled-left"] [proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str]
+             span [ClassName "is-pulled-right"] [
+                 Button.button
+                    [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control is-pulled-right"]
+                    [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+             ]
+        ]
+    ]
+
+let card mode dispatch (c: CardModel)  =
+    match mode with
+    | DisplayMode.Text -> textCard dispatch c
+    | DisplayMode.Images -> imageCard dispatch c
 
 let cardResultsView (model : Model) (dispatch: Msg -> unit) =
     match model.CardResults with
     | Some cs ->
         cs
-        |> List.map (card dispatch)
+        |> List.map (card model.DisplayMode dispatch)
         |> List.collect id
         |> Columns.columns [Columns.IsMobile; Columns.IsMultiline]
     | None ->
@@ -290,7 +332,7 @@ let tabsView (model: Model) (dispatch: Msg -> unit) =
             [ a [] [str t.Label] ]
     model.Tabs
     |> List.map tabView
-    |> Tabs.tabs []
+    |> Tabs.tabs [ Tabs.Option.Size ISize.IsSmall; Tabs.Option.IsFullwidth; Tabs.Option.IsCentered ]
 
 let contentView model dispatch =
     match model with
@@ -301,10 +343,10 @@ let contentView model dispatch =
             match model.ActiveTab.Type with
             | CardSearchResults -> cardResultsView model dispatch
             | SelectedCards -> selectedCardsView model dispatch
-        Box.box' [GenericOption.CustomClass "content"] [tabs;content]
+        Box.box' [] [tabs;content]
 
 let containerBox (model : Model) (dispatch : Msg -> unit) =
-    Box.box' []
+    Content.content []
         [
             Heading.h1 [ Heading.Option.Is3; Heading.Option.CustomClass "has-text-centered" ] [str "Proxy Croak Codes"]
             form [] [
@@ -326,6 +368,33 @@ let containerBox (model : Model) (dispatch : Msg -> unit) =
                             Button.Disabled (model.Searching || model.SearchText.IsNone)
                             Button.OnClick (fun ev -> ev.preventDefault(); Search |> dispatch) ]
                           [ str "Search" ]
+
+                    ]
+                ]
+                Form.Field.div [ Form.Field.HasAddons;Form.Field.HasAddonsCentered] [
+                    Form.Control.div [ ] [
+                        Button.a
+                          [ if model.DisplayMode = DisplayMode.Images then yield Button.Color IsPrimary
+                            yield Button.Disabled (model.DisplayMode = DisplayMode.Text)
+                            yield Button.IsFocused (model.DisplayMode = DisplayMode.Text)
+                            yield Button.OnClick (fun ev -> ev.preventDefault(); SetDisplayMode DisplayMode.Text |> dispatch) ]
+                          [
+                              span [ClassName "icon"] [
+                                  Icon.faIcon [ ] [ Fa.icon Fa.I.FileText ]
+                              ]
+                              span [] [str "Text Only"]
+                          ]
+                        Button.a
+                          [ if model.DisplayMode = DisplayMode.Text then yield Button.Color IsPrimary
+                            yield Button.Disabled (model.DisplayMode = DisplayMode.Images)
+                            yield Button.IsFocused (model.DisplayMode = DisplayMode.Images)
+                            yield Button.OnClick (fun ev -> ev.preventDefault(); SetDisplayMode DisplayMode.Images |> dispatch) ]
+                          [
+                              span [ClassName "icon"] [
+                                  Icon.faIcon [ ] [ Fa.icon Fa.I.Image ]
+                              ]
+                              span [] [str "Images"]
+                          ]
                     ]
                 ]
             ]
@@ -337,12 +406,6 @@ let view (model : Model) (dispatch : Msg -> unit) =
         containerBox model dispatch
         contentView model dispatch
     ]
-//   let active ta t =
-//         ta = t
-//   Tabs.tabs [] [
-//                 for tab in model.Tabs do
-//                     yield Tabs.tab [ Tabs.Tab.IsActive (active model.ActiveTab tab) ] [a [] [str tab.Label]]
-//             ]
 
 
 #if DEBUG
