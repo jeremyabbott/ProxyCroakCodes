@@ -221,9 +221,11 @@ let imageCard dispatch (c: CardModel) =
                     p [ClassName "card-header-title"] [ proxyCroakCodeFormatter c.Card |> str]
                 ]
 
-                Card.content [GenericOption.CustomClass "is-flex is-horizontal-center"] [
-                    Image.image [] [
-                        img [ Src c.Card.ImageUrl]
+                Card.content [GenericOption.CustomClass "is-flex stack"] [
+                    p [ClassName "is-horizontal-center"] [
+                        Image.image [] [
+                            img [ Src c.Card.ImageUrl]
+                        ]
                     ]
                 ]
                 Card.footer [] [
@@ -267,10 +269,9 @@ let cardResultsView (model : Model) (dispatch: Msg -> unit) =
     | None ->
         p [] [str "There are no search results to display"]
 
-let selectedCardsView  model dispatch =
-    match model.SelectedCards with
-    | [] -> p [] [str "You haven't selected any cards!"]
-    | scs ->
+let selectedCardsView (model: Model) dispatch =
+
+    let selectedCardText dispatch (sc: CardModel) =
         let quantityElement sc =
             sc.Quantity |> sprintf "%d"
 
@@ -297,8 +298,7 @@ let selectedCardsView  model dispatch =
 
         let formattedCodeElement c = proxyCroakCodeFormatter c
 
-        let cardRow sc =
-            [
+        [
                 Column.column
                     [ Column.Width(Column.Mobile, Column.Is6)
                       Column.Width(Column.Tablet, Column.Is6)
@@ -317,8 +317,70 @@ let selectedCardsView  model dispatch =
                 ]
             ]
 
+    let selectedCardImage dispatch (sc: CardModel) =
+        let quantityElement sc =
+            sc.Quantity |> sprintf "%d"
+
+        let deleteButton sc dispatch =
+            Button.a
+                [ Button.Color IsDanger;
+                  Button.CustomClass "card-footer-item"
+                  Button.OnClick (fun _ -> CardRemoved sc |> dispatch)]
+                [ Icon.faIcon [ ] [ Fa.icon Fa.I.Trash; Fa.faLg ] ]
+
+        let incrementButton sc dispatch =
+            Button.a
+                [ Button.Color IsPrimary
+                  Button.CustomClass "card-footer-item"
+                  Button.OnClick (fun _ -> QuantityIncremented sc |> dispatch)]
+                [ Icon.faIcon [ ] [ Fa.icon Fa.I.PlusSquare; Fa.faLg ] ]
+
+        let decrementButton sc dispatch =
+            Button.a
+                [ Button.Color IsPrimary
+                  Button.CustomClass "card-footer-item"
+                  Button.OnClick (fun _ -> QuantityDecremented sc |> dispatch) ]
+                [ Icon.faIcon [ ] [ Fa.icon Fa.I.MinusSquare; Fa.faLg ] ]
+
+        let formattedCodeElement c = proxyCroakCodeFormatter c
+        [
+            Column.column [
+                Column.Width(Column.Desktop, Column.IsOneQuarter)
+                Column.Width(Column.Mobile, Column.IsFull)
+                ] [
+
+                Card.card [] [
+                    Card.header [] [
+                        p [ClassName "card-header-title"] [ proxyCroakCodeFormatter sc.Card |> str]
+                    ]
+
+                    Card.content [GenericOption.CustomClass "is-flex stack"] [
+                        p [ClassName "is-horizontal-center"] [
+                            Image.image [] [
+                                img [ Src sc.Card.ImageUrl]
+                            ]
+                        ]
+                        p [ClassName "has-text-centered"] [quantityElement sc |> str]
+                    ]
+                    Card.footer [] [
+                        incrementButton sc dispatch
+                        decrementButton sc dispatch
+                        deleteButton sc dispatch
+                    ]
+                ]
+            ]
+        ]
+
+    let selectedCardView =
+        match model.DisplayMode with
+        | Text -> selectedCardText
+        | Images -> selectedCardImage
+
+    match model.SelectedCards with
+    | [] -> p [] [str "You haven't selected any cards!"]
+    | scs ->
         scs
-        |> List.map cardRow
+        |> List.map (selectedCardView dispatch)
         |> List.collect id
         |> Columns.columns [Columns.IsMultiline; Columns.IsMobile]
 

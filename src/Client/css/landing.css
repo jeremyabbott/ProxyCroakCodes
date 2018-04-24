@@ -1,3 +1,11 @@
 .is-horizontal-center {
-    justify-content: center;
+    align-self: center
+}
+
+.is-bottom {
+    align-self: flex-end
+}
+
+.stack {
+    flex-direction: column
 }
