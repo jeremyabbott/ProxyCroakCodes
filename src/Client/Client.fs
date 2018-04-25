@@ -286,6 +286,7 @@ let selectedCardsView (model: Model) dispatch =
             Button.button
                 [ Button.Color IsPrimary
                   Button.CustomClass "control"
+                  Button.Disabled (sc.Quantity = 4)
                   Button.OnClick (fun _ -> QuantityIncremented sc |> dispatch)]
                 [ Icon.faIcon [ ] [ Fa.icon Fa.I.PlusSquare; Fa.faLg ] ]
 
@@ -319,7 +320,9 @@ let selectedCardsView (model: Model) dispatch =
 
     let selectedCardImage dispatch (sc: CardModel) =
         let quantityElement sc =
-            sc.Quantity |> sprintf "%d"
+            match sc.Quantity with
+            | 1 -> sprintf "%d card selected" 1
+            | q -> sprintf "%d cards selected" q
 
         let deleteButton sc dispatch =
             Button.a
@@ -331,6 +334,7 @@ let selectedCardsView (model: Model) dispatch =
         let incrementButton sc dispatch =
             Button.a
                 [ Button.Color IsPrimary
+                  Button.Disabled (sc.Quantity = 4)
                   Button.CustomClass "card-footer-item"
                   Button.OnClick (fun _ -> QuantityIncremented sc |> dispatch)]
                 [ Icon.faIcon [ ] [ Fa.icon Fa.I.PlusSquare; Fa.faLg ] ]
@@ -360,7 +364,10 @@ let selectedCardsView (model: Model) dispatch =
                                 img [ Src sc.Card.ImageUrl]
                             ]
                         ]
-                        p [ClassName "has-text-centered"] [quantityElement sc |> str]
+                        p [ClassName "has-text-centered"] [
+                            quantityElement sc
+                            |> str
+                        ]
                     ]
                     Card.footer [] [
                         incrementButton sc dispatch
