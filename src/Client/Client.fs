@@ -81,7 +81,7 @@ let init () : Model * Cmd<Msg> =
           ErrorMessage = ""
           SelectedCards = []
           Tabs = tabs
-          ActiveTab = searchResultsTab;
+          ActiveTab = searchResultsTab
           BurgerActive = false }
     let cmd = Cmd.none
     model, cmd
@@ -228,7 +228,7 @@ let imageCard dispatch (c: CardModel) =
                 ]
 
                 Card.content [GenericOption.CustomClass "is-flex stack"] [
-                    p [ClassName "is-horizontal-center"] [
+                    div [ClassName "is-horizontal-center"] [
                         Image.image [] [
                             img [ Src c.Card.ImageUrl]
                         ]
@@ -251,17 +251,43 @@ let textCard dispatch (c: CardModel) =
                                        |> dispatch )
     [
         Column.column [Column.Width(Column.All, Column.IsFull)] [
-            Level.level [Level.Level.IsMobile] [
-                Level.left [] [
-                    Level.item [] [img [Src c.Card.SymbolUrl]]
-                    Level.item [] [proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str]
+            Media.media [] [
+                Media.left [] [
+                    Image.image [Image.Is24x24] [ img [Src c.Card.SymbolUrl]]
                 ]
-                Level.right [] [
-                    Button.button
-                        [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
-                        [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+                Media.content [] [
+                    proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str
+                ]
+                Media.right [] [
+                    div [ClassName "is-pulled-right"] [
+                        Button.button
+                            [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
+                            [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+                    ]
                 ]
             ]
+
+            // Image.image [Image.Is24x24] [ img [Src c.Card.SymbolUrl]]
+            // proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str
+            // div [ClassName "is-pulled-right"] [
+            //         Button.button
+            //             [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
+            //             [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+            // ]
+
+            // Level.level [Level.Level.IsMobile] [
+            //     Level.left [] [
+            //         Level.item [] [Image.image [Image.Is24x24] [ img [Src c.Card.SymbolUrl]]]
+            //         Level.item [] [
+            //             proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str
+            //         ]
+            //     ]
+            //     Level.right [] [
+            //         Button.button
+            //             [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
+            //             [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+            //     ]
+            // ]
         ]
     ]
 
@@ -370,7 +396,7 @@ let selectedCardsView (model: Model) dispatch =
                     ]
 
                     Card.content [GenericOption.CustomClass "is-flex stack"] [
-                        p [ClassName "is-horizontal-center"] [
+                        div [ClassName "is-horizontal-center"] [
                             Image.image [] [
                                 img [ Src sc.Card.ImageUrl]
                             ]
