@@ -47,8 +47,8 @@ type Model =
       ErrorMessage: string
       SelectedCards: CardModel list
       Tabs: TabModel list
-      ActiveTab: TabModel }
-
+      ActiveTab: TabModel
+      BurgerActive: bool }
 
 let searchResultsTab = { Label = "Search Results"; Type = CardSearchResults }
 let selectedCardsTab = { Label = "Selected Cards"; Type = SelectedCards }
@@ -70,6 +70,7 @@ type Msg =
 | QuantityIncremented of CardModel
 | QuantityDecremented of CardModel
 | SetDisplayMode of DisplayMode
+| BurgerClicked
 
 let init () : Model * Cmd<Msg> =
     let model =
@@ -80,7 +81,8 @@ let init () : Model * Cmd<Msg> =
           ErrorMessage = ""
           SelectedCards = []
           Tabs = tabs
-          ActiveTab = searchResultsTab }
+          ActiveTab = searchResultsTab;
+          BurgerActive = false }
     let cmd = Cmd.none
     model, cmd
 
@@ -148,39 +150,42 @@ let handleDecrement model card =
     { model with SelectedCards = updatedCards; CardResults = Some updatedResults }
 
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
-    match model, msg with
-    | _, Search -> { model with Searching = true }, searchCmd model.SearchText
-    | _, SetSearchText s ->
+    match msg with
+    | Search -> { model with Searching = true }, searchCmd model.SearchText
+    | SetSearchText s ->
         let searchText = if s.Length = 0 then None else Some s
         { model with SearchText = searchText}, Cmd.none
-    | _, SearchSuccess cs -> { model with CardResults = Some cs; Searching = false}, Cmd.none
-    | _, SearchFailed exn -> { model with ErrorMessage = exn.Message; Searching = false}, Cmd.none
-    | _, CardSelected c -> handleSelected model c, Cmd.none
-    | _, CardRemoved c -> handleRemoved model c, Cmd.none
-    | _, TabSelected t -> { model with ActiveTab = t }, Cmd.none
-    | _, QuantityIncremented c -> handleIncrement model c, Cmd.none
-    | _, QuantityDecremented c -> handleDecrement model c, Cmd.none
-    | _, SetDisplayMode m -> { model with DisplayMode = m}, Cmd.none
+    | SearchSuccess cs -> { model with CardResults = Some cs; Searching = false}, Cmd.none
+    | SearchFailed exn -> { model with ErrorMessage = exn.Message; Searching = false}, Cmd.none
+    | CardSelected c -> handleSelected model c, Cmd.none
+    | CardRemoved c -> handleRemoved model c, Cmd.none
+    | TabSelected t -> { model with ActiveTab = t }, Cmd.none
+    | QuantityIncremented c -> handleIncrement model c, Cmd.none
+    | QuantityDecremented c -> handleDecrement model c, Cmd.none
+    | SetDisplayMode m -> { model with DisplayMode = m}, Cmd.none
+    | BurgerClicked -> { model with BurgerActive = not model.BurgerActive}, Cmd.none
     | _ -> model, Cmd.none
 
 let show = function
 | Some x -> string x
 | None -> "Enter a Pokemon name"
 
-let navBrand =
+let navBrand model dispatch =
+    let active = if model.BurgerActive then "is-active" else ""
+
     Navbar.Brand.div [] [
         Navbar.Item.a [ Navbar.Item.Props [ Href "/" ] ]
             [ img [ Src "/Images/Pokeball-Transparent-Background.png"; Alt "Logo" ] ]
-        Navbar.burger [ ] [
+        Navbar.burger [ GenericOption.CustomClass active; GenericOption.Props[OnClick (fun _ -> dispatch BurgerClicked)]] [
             span [ ] [ ]
             span [ ] [ ]
             span [ ] [ ]
         ]
     ]
 
-let navMenu =
-    Navbar.menu [] [
-        Navbar.Start.a [] [
+let navMenu model =
+    Navbar.menu [Navbar.Menu.IsActive model.BurgerActive] [
+        Navbar.Start.div [] [
             Navbar.Item.a [] [str "Proxy Croak Codes"]
         ]
         Navbar.End.div [] [
@@ -195,10 +200,11 @@ let navMenu =
             ]
         ]
     ]
-let navBar =
+
+let navBar model dispatch =
     Navbar.navbar [] [
-        navBrand
-        navMenu
+        navBrand model dispatch
+        navMenu model
     ]
 
 let proxyCroakCodeFormatter (c : Card) =
@@ -245,12 +251,17 @@ let textCard dispatch (c: CardModel) =
                                        |> dispatch )
     [
         Column.column [Column.Width(Column.All, Column.IsFull)] [
-             span [ClassName "is-pulled-left"] [proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str]
-             span [ClassName "is-pulled-right"] [
-                 Button.button
-                    [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control is-pulled-right"]
-                    [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
-             ]
+            Level.level [Level.Level.IsMobile] [
+                Level.left [] [
+                    Level.item [] [img [Src c.Card.SymbolUrl]]
+                    Level.item [] [proxyCroakCodeFormatter c.Card |> sprintf "  %s" |> str]
+                ]
+                Level.right [] [
+                    Button.button
+                        [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
+                        [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+                ]
+            ]
         ]
     ]
 
@@ -415,7 +426,7 @@ let contentView model dispatch =
         Box.box' [] [tabs;content]
 
 let containerBox (model : Model) (dispatch : Msg -> unit) =
-    Content.content []
+    Box.box' []
         [
             Heading.h1 [ Heading.Option.Is3; Heading.Option.CustomClass "has-text-centered" ] [str "Proxy Croak Codes"]
             form [] [
@@ -471,7 +482,7 @@ let containerBox (model : Model) (dispatch : Msg -> unit) =
 
 let view (model : Model) (dispatch : Msg -> unit) =
     div [] [
-        navBar
+        navBar model dispatch
         containerBox model dispatch
         contentView model dispatch
     ]

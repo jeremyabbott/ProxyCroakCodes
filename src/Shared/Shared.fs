@@ -19,7 +19,9 @@ type Card = {
     ImageUrl : string
     Number : string
     PtcgoCode : string
-    Set : string
+    StandardLegal : bool
+    SymbolUrl : string
+    SetName : string
 }
 
 type CardResponse = Card list

@@ -50,7 +50,9 @@ module Domain =
             ImageUrl = p.ImageUrl
             Number = p.Number
             PtcgoCode = set.PtcgoCode
-            Set = p.Set }
+            StandardLegal = set.StandardLegal
+            SymbolUrl = set.SymbolUrl
+            SetName = set.Name }
 
     let mapPtcgCardToCard sets pCard =
        getPtcgoSetCode pCard sets
