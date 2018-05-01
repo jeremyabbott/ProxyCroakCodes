@@ -43,7 +43,8 @@ module.exports = {
     },
     hot: true,
     inline: true,
-    host: '127.0.0.1'
+    host: '127.0.0.1',
+    historyApiFallback: true,
   },
   module: {
     rules: [
