@@ -8,16 +8,15 @@ type Page =
     | Home
     | About
 
-let toPath =
+let toHash =
     function
-    | Page.Home -> "/"
-    | Page.About -> "/about"
-
+    | Page.Home -> "#home"
+    | Page.About -> "#about"
 
 /// The URL is turned into a Result.
 let pageParser : Parser<Page -> Page,_> =
     oneOf
-        [ map Page.Home (s "")
+        [ map Page.Home (s "home")
           map Page.About (s "about") ]
 
-let urlParser location = parsePath pageParser location
+let urlParser location = parseHash pageParser location

@@ -7,7 +7,7 @@ open Fable.Core.JsInterop
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
 
-open Client.Pages
+open Pages
 
 open Fulma
 open Fulma.Elements
@@ -32,7 +32,7 @@ type Msg =
 
 let handleNotFound (model: Model) =
     Browser.console.error("Error parsing url: " + Browser.window.location.href)
-    ( model, Navigation.modifyUrl (toPath Page.Home) )
+    ( model, Navigation.modifyUrl (toHash Page.Home) )
 
 let urlUpdate (result:Page option) (model: Model) : Model * Cmd<Msg> =
     match result with
@@ -44,10 +44,8 @@ let urlUpdate (result:Page option) (model: Model) : Model * Cmd<Msg> =
         { model with PageModel = Home model.SearchResults }, Cmd.none
 
 let goToUrl (e: React.MouseEvent)  =
-    printfn "test"
     e.preventDefault()
     let href = !!e.target?href
-    printfn "%s" href
     Navigation.newUrl href |> List.map (fun f -> f ignore) |> ignore
 
 let init result : Model * Cmd<Msg> =
@@ -75,7 +73,7 @@ let navBrand model dispatch =
     let active = if model.BurgerActive then "is-active" else ""
 
     Navbar.Brand.div [] [
-        Navbar.Item.a [ Navbar.Item.Props [ Href "/" ] ]
+        Navbar.Item.a [ Navbar.Item.Props [ Pages.toHash Page.Home |> Href ] ]
             [ img [ Src "/Images/Pokeball-Transparent-Background.png"; Alt "Logo" ] ]
         Navbar.burger [ GenericOption.CustomClass active; GenericOption.Props[OnClick (fun _ -> dispatch BurgerClicked)]] [
             span [ ] [ ]
@@ -90,7 +88,7 @@ let navMenu model =
             Navbar.Item.a [
 
                 Navbar.Item.Option.Props [
-                    Href "/"
+                    Pages.toHash Page.Home |> Href
                     OnClick goToUrl
                 ]
             ] [str "Proxy Croak Codes"]
@@ -101,7 +99,7 @@ let navMenu model =
                     Button.IsOutlined
                     Button.Size IsSmall
                     Button.OnClick goToUrl
-                    Button.Props [ Client.Pages.toPath Client.Pages.Page.About |> Href ] ]
+                    Button.Props [ Pages.toHash Page.About |> Href ] ]
                     [ str "About"]
                 Button.a
                     [ Button.IsOutlined
@@ -137,7 +135,7 @@ open Elmish.HMR
 #endif
 
 Program.mkProgram init update view
-|> Program.toNavigable Client.Pages.urlParser urlUpdate
+|> Program.toNavigable urlParser urlUpdate
 #if DEBUG
 |> Program.withConsoleTrace
 |> Program.withHMR

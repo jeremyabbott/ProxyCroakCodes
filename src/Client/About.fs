@@ -26,20 +26,18 @@ let why = [
 ]
 
 let how = [
-    p [] [
-        ol [] [
-            li [] [str "Search for a card like \"Pikachu\""]
-            li [] [str "The text search results are already formatted for Proxy Croak"]
-            li [] [str "If you need more information, change the search result format to \"Images\""]
-            li [] [str "After you find the card you want, click the [+} button"]
-            li [] [str "Switch over to \"Selected Cards\" to view your cards"]
-            li [] [
-                str "From \"Selected Cards\" you can highlight all your cards and paste the content directly into "
-                proxyCroak
-                str "."]
-            li [] [
-                str "From \"Seleced Cards\" you can increment/decrement the number of cards you need."
-            ]
+    ol [] [
+        li [] [str "Search for a card like \"Pikachu\""]
+        li [] [str "The text search results are already formatted for Proxy Croak"]
+        li [] [str "If you need more information, change the search result format to \"Images\""]
+        li [] [str "After you find the card you want, click the [+} button"]
+        li [] [str "Switch over to \"Selected Cards\" to view your cards"]
+        li [] [
+            str "From \"Selected Cards\" you can highlight all your cards and paste the content directly into "
+            proxyCroak
+            str "."]
+        li [] [
+            str "From \"Seleced Cards\" you can increment/decrement the number of cards you need."
         ]
     ]
 ]
