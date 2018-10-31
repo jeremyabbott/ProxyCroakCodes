@@ -51,7 +51,7 @@ module Controller =
         }
 
     let nameSearch =
-        fun ((ctx: HttpContext), name) ->
+        fun (ctx: HttpContext) name ->
             task {
                 let serializer = getService<IJsonSerializer> ctx
                 let cache = getService<IMemoryCache> ctx
