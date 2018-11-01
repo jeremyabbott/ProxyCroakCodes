@@ -10,7 +10,7 @@ let clientPath = Path.Combine("..","Client") |> Path.GetFullPath
 let port = 8085us
 
 
-let browserRouter = scope {
+let browserRouter = router {
   get "/" (htmlFile (Path.Combine(clientPath, "index.html")))
 }
 
@@ -21,7 +21,7 @@ let config (services:IServiceCollection) =
   services.AddMemoryCache() |> ignore
   services
 
-let apiRouter = scope {
+let apiRouter = router {
   forward "/search" ProxyCroakCodes.Cards.Controller.controller
 }
 

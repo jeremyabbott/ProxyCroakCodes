@@ -23,8 +23,8 @@ group Client
 
 // [ FAKE GROUP ]
 group Build
+ storage: none
   source https://api.nuget.org/v3/index.json
-  nuget Fake
   nuget Fake.Core.Target
   nuget Fake.Core.SemVer
   nuget Fake.Core.Environment
