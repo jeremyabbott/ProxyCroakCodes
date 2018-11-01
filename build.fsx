@@ -70,24 +70,24 @@ Target.create "InstallClient" (fun _ ->
     printfn "Yarn version:"
     run yarnTool "--version" __SOURCE_DIRECTORY__
     run yarnTool "install --frozen-lockfile" __SOURCE_DIRECTORY__
-    run dotnetCli "restore" clientPath
 )
 
-Target.create "RestoreServer" (fun _ ->
-    run dotnetCli "restore" serverPath
-)
-
-Target.create "Build" (fun _ ->
+Target.create "BuildServer" (fun _ ->
     run dotnetCli "build" serverPath
-    run dotnetCli "fable webpack -- -p" clientPath
 )
+
+Target.create "BuildClient" (fun _ ->
+    run dotnetCli "restore" clientPath
+    run dotnetCli "fable webpack-cli -- --config src/Client/webpack.config.js -p" clientPath
+)
+
 
 Target.create "Run" (fun _ ->
     let server = async {
         run dotnetCli "watch run" serverPath
     }
     let client = async {
-        run dotnetCli "fable webpack-dev-server" clientPath
+        run dotnetCli "fable webpack-dev-server -- --config src/Client/webpack.config.js" clientPath
     }
     let browser = async {
         Threading.Thread.Sleep 5000
@@ -171,16 +171,16 @@ open Fake.Core.TargetOperators
 "Clean"
     ==> "InstallDotNetCore"
     ==> "InstallClient"
-    ==> "Build"
+    ==> "BuildServer"
+    ==> "BuildClient"
 
 "InstallClient"
-    ==> "RestoreServer"
     ==> "Run"
 
-"Build"
+"BuildClient"
     ==> "BundleClient"
     ==> "CreateDockerImage"
     ==> "PrepareRelease"
     ==> "Deploy"
 
-Target.runOrDefault "Build"
+Target.runOrDefault "BuildClient"

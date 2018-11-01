@@ -10,10 +10,6 @@ open Fable.Helpers.React.Props
 
 open Elmish
 open Fulma
-open Fulma.Layouts
-open Fulma.Elements
-open Fulma.Components
-open Fulma.Extra.FontAwesome
 
 type CardModel = {
     Selected: bool
