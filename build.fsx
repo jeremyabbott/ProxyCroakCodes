@@ -1,9 +1,14 @@
-#r @"packages/build/FAKE/tools/FakeLib.dll"
+open Fake.Core
+#r "paket: groupref Build //"
+#load ".fake/build.fsx/intellisense.fsx"
+
+#if !FAKE
+#r "netstandard"
+#r "Facades/netstandard" // https://github.com/ionide/ionide-vscode-fsharp/issues/839#issuecomment-396296095
+#endif
 
 open System
 open System.IO
-open Fake.Git
-open Fake.Core
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
@@ -27,12 +32,10 @@ let releaseNotesData =
 
 let release = List.head releaseNotesData
 
-let packageVersion = SemVer.parse release.NugetVersion
-
 let platformTool tool winTool =
     let tool = if Environment.isUnix then tool else winTool
     tool
-    |> Process.tryFindFileOnPath
+    |> ProcessUtils.tryFindFileOnPath
     |> function Some t -> t | _ -> failwithf "%s not found" tool
 
 let nodeTool = platformTool "node" "node.exe"

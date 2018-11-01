@@ -1,42 +1,27 @@
 #!/usr/bin/env bash
 
 set -eu
+set -o pipefail
 
-cd "$(dirname "$0")"
-
-PAKET_EXE=.paket/paket.exe
-FAKE_EXE=packages/build/FAKE/tools/FAKE.exe
-
-FSIARGS=""
-FSIARGS2=""
-OS=${OS:-"unknown"}
-if [ "$OS" != "Windows_NT" ]
-then
-  # Can't use FSIARGS="--fsiargs -d:MONO" in zsh, so split it up
-  # (Can't use arrays since dash can't handle them)
-  FSIARGS="--fsiargs"
-  FSIARGS2="-d:MONO"
-fi
-
-run() {
-  if [ "$OS" != "Windows_NT" ]
-  then
-    mono "$@"
-  else
-    "$@"
-  fi
+# liberated from https://stackoverflow.com/a/18443300/433393
+realpath() {
+  OURPWD=$PWD
+  cd "$(dirname "$1")"
+  LINK=$(readlink "$(basename "$1")")
+  while [ "$LINK" ]; do
+    cd "$(dirname "$LINK")"
+    LINK=$(readlink "$(basename "$1")")
+  done
+  REALPATH="$PWD/$(basename "$1")"
+  cd "$OURPWD"
+  echo "$REALPATH"
 }
 
-echo "Executing Paket..."
+TOOL_PATH=$(realpath .fake)
+FAKE="$TOOL_PATH"/fake
 
-FILE='paket.lock'     
-if [ -f $FILE ]; then
-   echo "paket.lock file found, restoring packages..."
-   run $PAKET_EXE restore
-else
-   echo "paket.lock was not found, installing packages..."
-   run $PAKET_EXE install
+if ! [ -e "$FAKE" ]
+then
+  dotnet tool install fake-cli --tool-path "$TOOL_PATH"
 fi
-
-run $FAKE_EXE "$@" $FSIARGS $FSIARGS2 build.fsx
-
+"$FAKE" "$@"
