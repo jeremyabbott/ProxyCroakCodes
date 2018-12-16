@@ -10,6 +10,8 @@ open Fable.Helpers.React.Props
 
 open Elmish
 open Fulma
+open Fulma.FontAwesome
+open Thoth.Json
 
 type CardModel = {
     Selected: bool
@@ -72,6 +74,23 @@ let init () =
       Tabs = tabs
       ActiveTab = searchResultsTab }
 
+let cardDecoder: Decode.Decoder<Card> =
+    Decode.object (fun get ->
+        {
+            Id = get.Required.Field "Id" Decode.string
+            Name = get.Required.Field "Name" Decode.string
+            ImageUrl = get.Required.Field "ImageUrl" Decode.string
+            Number = get.Required.Field "Number" Decode.string
+            PtcgoCode = get.Optional.Field "PtcgoCode" Decode.string |> Option.defaultValue ""
+            StandardLegal = get.Required.Field "StandardLegal" Decode.bool
+            SymbolUrl = get.Required.Field "SymbolUrl" Decode.string
+            SetName = get.Required.Field "SetName" Decode.string
+        }
+    )
+
+let cardResponseDecoder: Decode.Decoder<CardResponse> =
+    Decode.list cardDecoder
+
 let search text =
     promise {
         match text with
@@ -83,9 +102,11 @@ let search text =
                       HttpRequestHeaders.ContentType "application/json" ]]
             let url = sprintf "/api/search/%s" s
             try
-                let! response = Fetch.fetchAs<CardResponse> url requestProperties
+                let! response = Fetch.fetchAs<CardResponse> url cardResponseDecoder requestProperties
                 return response |> List.map (fun c -> { Selected = false; Card = c; Quantity = 1})
-            with _ -> return! failwithf "Could not find %s" s
+            with ex ->
+                do Fable.Import.Browser.console.log (sprintf "Error! %A" ex)
+                return! failwithf "Could not find %s" ex.Message
     }
 
 let searchCmd text =
@@ -162,8 +183,8 @@ let imageCard dispatch (c: CardModel) =
                                        |> dispatch )
     [
         Column.column [
-            Column.Width(Column.Desktop, Column.IsOneQuarter)
-            Column.Width(Column.Mobile, Column.IsFull)
+            Column.Width(Screen.Desktop, Column.IsOneQuarter)
+            Column.Width(Screen.Mobile, Column.IsFull)
             ] [
 
             Card.card [] [
@@ -194,7 +215,7 @@ let textCard dispatch (c: CardModel) =
                                        else CardSelected c
                                        |> dispatch )
     [
-        Column.column [Column.Width(Column.All, Column.IsFull)] [
+        Column.column [Column.Width(Screen.All, Column.IsFull)] [
             Media.media [] [
                 Media.left [] [
                     Image.image [Image.Is24x24] [ img [Src c.Card.SymbolUrl]]
@@ -282,14 +303,14 @@ let selectedCardsView (model: SearchResultsModel) dispatch =
 
         [
                 Column.column
-                    [ Column.Width(Column.Mobile, Column.Is6)
-                      Column.Width(Column.Tablet, Column.Is6)
-                      Column.Width(Column.Desktop, Column.Is9) ]
+                    [ Column.Width(Screen.Mobile, Column.Is6)
+                      Column.Width(Screen.Tablet, Column.Is6)
+                      Column.Width(Screen.Desktop, Column.Is9) ]
                     [ sprintf "%s %s" (quantityElement sc) (formattedCodeElement sc.Card) |> str ]
                 Column.column
-                    [ Column.Width(Column.Mobile, Column.Is6)
-                      Column.Width(Column.Tablet, Column.Is6)
-                      Column.Width(Column.Desktop, Column.Is3)] [
+                    [ Column.Width(Screen.Mobile, Column.Is6)
+                      Column.Width(Screen.Tablet, Column.Is6)
+                      Column.Width(Screen.Desktop, Column.Is3)] [
                     span [ClassName "is-pulled-right"] [
                         incrementButton sc dispatch
                         decrementButton sc dispatch
@@ -330,8 +351,8 @@ let selectedCardsView (model: SearchResultsModel) dispatch =
         let formattedCodeElement c = proxyCroakCodeFormatter c
         [
             Column.column [
-                Column.Width(Column.Desktop, Column.IsOneQuarter)
-                Column.Width(Column.Mobile, Column.IsFull)
+                Column.Width(Screen.Desktop, Column.IsOneQuarter)
+                Column.Width(Screen.Mobile, Column.IsFull)
                 ] [
 
                 Card.card [] [
@@ -382,7 +403,7 @@ let tabsView (model: SearchResultsModel) (dispatch: Msg -> unit) =
             [ a [] [str t.Label] ]
     model.Tabs
     |> List.map tabView
-    |> Tabs.tabs [ Tabs.Option.Size ISize.IsSmall; Tabs.Option.IsFullwidth; Tabs.Option.IsCentered ]
+    |> Tabs.tabs [ Tabs.Option.Size ISize.IsSmall; Tabs.Option.IsFullWidth; Tabs.Option.IsCentered ]
 
 let contentView model dispatch =
     match model with
@@ -400,18 +421,18 @@ let containerBox model (dispatch : Msg -> unit) =
         [
             Heading.h1 [ Heading.Option.Is3; Heading.Option.CustomClass "has-text-centered" ] [str "Proxy Croak Codes"]
             form [] [
-                Form.Field.div [ Form.Field.HasAddons;Form.Field.HasAddonsCentered] [
-                    Form.Control.div [ ] [
-                        Form.Input.text
-                            [ Form.Input.Placeholder "Enter a Pokemon name"
-                              Form.Input.Props
+                Field.div [ Field.HasAddons;Field.HasAddonsCentered] [
+                    Control.div [ ] [
+                        Input.text
+                            [ Input.Placeholder "Enter a Pokemon name"
+                              Input.Props
                                 [ OnChange (fun ev ->
                                               ev.preventDefault()
                                               dispatch (SetSearchText !!ev.target?value))
                                   AutoFocus true ]
                             ]
                     ]
-                    Form.Control.div [ ] [
+                    Control.div [ ] [
                         Button.button
                           [ Button.Color IsPrimary
                             Button.IsLoading model.Searching
@@ -421,8 +442,8 @@ let containerBox model (dispatch : Msg -> unit) =
 
                     ]
                 ]
-                Form.Field.div [ Form.Field.HasAddons;Form.Field.HasAddonsCentered] [
-                    Form.Control.div [ ] [
+                Field.div [ Field.HasAddons;Field.HasAddonsCentered] [
+                    Control.div [ ] [
                         Button.a
                           [ if model.DisplayMode = DisplayMode.Images then yield Button.Color IsPrimary
                             yield Button.Disabled (model.DisplayMode = DisplayMode.Text)

@@ -3,7 +3,7 @@ namespace ProxyCroakCodes.Cards
 open Saturn
 open Saturn.ControllerHelpers.Response
 open Shared
-open FSharp.Control.Tasks.ContextInsensitive
+open FSharp.Control.Tasks.V2
 open Giraffe.Serialization.Json
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Caching.Memory

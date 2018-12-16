@@ -1,27 +1,29 @@
 var path = require("path");
+var webpack = require("webpack");
+var MinifyPlugin = require("terser-webpack-plugin");
 
 function resolve(filePath) {
     return path.join(__dirname, filePath)
 }
 
 var CONFIG = {
-    fsharpEntry:
-        ["whatwg-fetch",
+    fsharpEntry: {
+        "app": [
+            "whatwg-fetch",
             "@babel/polyfill",
             resolve("./Client.fsproj")
-        ],
-    outputDir: resolve("./public"),
-    devServerPort: undefined,
+        ]
+    },
     devServerProxy: {
         '/api/*': {
-            target: 'http://localhost:' + (process.env.SUAVE_FABLE_PORT || "8085"),
+            target: 'http://127.0.0.1:' + (process.env.SUAVE_FABLE_PORT || "8085"),
             changeOrigin: true
         }
     },
     historyApiFallback: {
         index: resolve("./index.html")
     },
-    contentBase: __dirname,
+    contentBase: resolve('./public'),
     // Use babel-preset-env to generate JS compatible with most-used browsers.
     // More info at https://github.com/babel/babel/blob/master/packages/babel-preset-env/README.md
     babel: {
@@ -41,26 +43,18 @@ var CONFIG = {
 var isProduction = process.argv.indexOf("-p") >= 0;
 console.log("Bundling for " + (isProduction ? "production" : "development") + "...");
 
-var webpack = require("webpack");
-var MinifyPlugin = require("terser-webpack-plugin");
-
-var commonPlugins = [
-];
-
 module.exports = {
     entry: CONFIG.fsharpEntry,
-    // NOTE we add a hash to the output file name in production
-    // to prevent browser caching if code changes
     output: {
-        path: CONFIG.outputDir,
-        publicPath: "/public",
+        path: resolve('./public/js'),
+        publicPath: "/js",
         filename: '[name].js'
-    },
-    resolve: {
-        symlinks: false,
     },
     mode: isProduction ? "production" : "development",
     devtool: isProduction ? undefined : "source-map",
+    resolve: {
+        symlinks: false
+    },
     optimization: {
         // Split the code coming from npm packages into a different file.
         // 3rd party dependencies change less often, let the browser cache them.
@@ -75,16 +69,10 @@ module.exports = {
         },
         minimizer: isProduction ? [new MinifyPlugin()] : []
     },
-    // Besides the HtmlPlugin, we use the following plugins:
-    // PRODUCTION
-    //      - UglifyJSPlugin: Minimize the CSS
-    // DEVELOPMENT
-    //      - HotModuleReplacementPlugin: Enables hot reloading when code changes without refreshing
-    plugins: isProduction ?
-        commonPlugins
-        : commonPlugins.concat([
+    plugins: isProduction ? [] : [
             new webpack.HotModuleReplacementPlugin(),
-        ]),
+            new webpack.NamedModulesPlugin()
+        ],
     // Configuration for webpack-dev-server
     devServer: {
         proxy: CONFIG.devServerProxy,

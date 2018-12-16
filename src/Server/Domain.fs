@@ -1,7 +1,7 @@
 namespace ProxyCroakCodes
 open System.Net.Http
 open Giraffe.Serialization
-open FSharp.Control.Tasks.ContextInsensitive
+open FSharp.Control.Tasks.V2
 open Shared
 
 module Domain =

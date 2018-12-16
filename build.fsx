@@ -1,4 +1,3 @@
-open Fake.Core
 #r "paket: groupref Build //"
 #load ".fake/build.fsx/intellisense.fsx"
 
@@ -7,11 +6,10 @@ open Fake.Core
 #r "Facades/netstandard" // https://github.com/ionide/ionide-vscode-fsharp/issues/839#issuecomment-396296095
 #endif
 
+open Fake.Core
 open System
 open System.IO
 open Fake.IO
-open Fake.IO.FileSystemOperators
-open Fake.IO.Globbing.Operators
 open Fake.DotNet
 open Fake.Tools.Git
 
@@ -34,14 +32,40 @@ let release = List.head releaseNotesData
 
 let platformTool tool winTool =
     let tool = if Environment.isUnix then tool else winTool
-    tool
-    |> ProcessUtils.tryFindFileOnPath
-    |> function Some t -> t | _ -> failwithf "%s not found" tool
+    match ProcessUtils.tryFindFileOnPath tool with
+    | Some t -> t
+    | _ ->
+        let errorMsg =
+            tool + " was not found in path. " +
+            "Please install it and make sure it's available from your path. " +
+            "See https://safe-stack.github.io/docs/quickstart/#install-pre-requisites for more info"
+        failwith errorMsg
 
 let nodeTool = platformTool "node" "node.exe"
 let yarnTool = platformTool "yarn" "yarn.cmd"
+let npxTool = platformTool "npx" "npx.exe"
 
-let mutable dotnetCli = "dotnet"
+let runTool cmd args workingDir =
+    let arguments = args |> String.split ' ' |> Arguments.OfArgs
+    Command.RawCommand (cmd, arguments)
+    |> CreateProcess.fromCommand
+    |> CreateProcess.withWorkingDirectory workingDir
+    |> CreateProcess.ensureExitCode
+    |> Proc.run
+    |> ignore
+
+let runDotNet cmd workingDir =
+    let result =
+        DotNet.exec (DotNet.Options.withWorkingDirectory workingDir) cmd ""
+    if result.ExitCode <> 0 then failwithf "'dotnet %s' failed in %s" cmd workingDir
+
+let openBrowser url =
+    //https://github.com/dotnet/corefx/issues/10361
+    Command.ShellCommand url
+    |> CreateProcess.fromCommand
+    |> CreateProcess.ensureExitCodeWithMessage "opening browser failed"
+    |> Proc.run
+    |> ignore
 
 let run cmd args workingDir =
     let result =
@@ -58,46 +82,69 @@ Target.create "Clean" (fun _ ->
     Shell.cleanDirs [deployDir]
 )
 
+Target.create "InstallClient" (fun _ ->
+    printfn "Node version:"
+    runTool nodeTool "--version" __SOURCE_DIRECTORY__
+    printfn "Yarn version:"
+    runTool yarnTool "--version" __SOURCE_DIRECTORY__
+    runTool yarnTool "install --frozen-lockfile" __SOURCE_DIRECTORY__
+    runDotNet "restore" clientPath
+)
+
 Target.create "InstallDotNetCore" (fun _ ->
     let version = DotNet.CliVersion.GlobalJson
 
     DotNet.install (fun opts -> { opts with Version = version }) (DotNet.Options.Create()) |> ignore
 )
 
-Target.create "InstallClient" (fun _ ->
-    printfn "Node version:"
-    run nodeTool "--version" __SOURCE_DIRECTORY__
-    printfn "Yarn version:"
-    run yarnTool "--version" __SOURCE_DIRECTORY__
-    run yarnTool "install --frozen-lockfile" __SOURCE_DIRECTORY__
+Target.create "RestoreServer" (fun _ ->
+    runDotNet "restore" serverPath
 )
 
-Target.create "BuildServer" (fun _ ->
-    run dotnetCli "build" serverPath
+Target.create "Build" (fun _ ->
+    runDotNet "build" serverPath
+    // runDotNet "fable webpack-cli -- --config src/Client/webpack.config.js -p" clientPath
+    runTool npxTool "webpack --config webpack.config.js -p" clientPath
 )
-
-Target.create "BuildClient" (fun _ ->
-    run dotnetCli "restore" clientPath
-    run dotnetCli "fable webpack-cli -- --config src/Client/webpack.config.js -p" clientPath
-)
-
 
 Target.create "Run" (fun _ ->
     let server = async {
-        run dotnetCli "watch run" serverPath
+        runDotNet "watch run" serverPath
     }
     let client = async {
-        run dotnetCli "fable webpack-dev-server -- --config src/Client/webpack.config.js" clientPath
+        runDotNet "fable webpack-dev-server -- --config src/Client/webpack.config.js" clientPath
     }
     let browser = async {
-        Threading.Thread.Sleep 5000
-        Diagnostics.Process.Start "http://127.0.0.1:8080" |> ignore
+        do! Async.Sleep 5000
+        openBrowser "http://localhost:8080"
     }
 
-    [ server; client; browser]
+    [ server; client; browser ]
     |> Async.Parallel
     |> Async.RunSynchronously
     |> ignore
+)
+
+Target.create "Bundle" (fun _ ->
+    let serverDir = Path.combine deployDir "Server"
+    let clientDir = Path.combine deployDir "Client"
+    let publicDir = Path.combine clientDir "public"
+
+    let publishArgs = sprintf "publish -c Release -o \"%s\"" serverDir
+    runDotNet publishArgs serverPath
+
+    Shell.copyDir publicDir "src/Client/public" FileFilter.allFiles
+)
+
+let dockerFullName = sprintf "%s/%s" dockerUser dockerImageName
+
+
+Target.create "Docker" (fun _ ->
+    let buildArgs = sprintf "build -t %s ." dockerFullName
+    runTool "docker" buildArgs "."
+
+    let tagArgs = sprintf "tag %s %s" dockerFullName dockerFullName
+    runTool "docker" tagArgs "."
 )
 
 Target.create "PrepareRelease" (fun _ ->
@@ -120,38 +167,6 @@ Target.create "PrepareRelease" (fun _ ->
     if result <> 0 then failwith "Docker tag failed"
 )
 
-Target.create "BundleClient" (fun _ ->
-    let result =
-        Process.execSimple (fun info ->
-            let arguments = "publish -c Release -o \"" + Path.getFullName deployDir + "\""
-            { info with FileName = dotnetCli; WorkingDirectory = serverPath; Arguments = arguments }) TimeSpan.MaxValue
-    if result <> 0 then failwith "Publish failed"
-
-    let clientDir = deployDir </> "Client"
-    let publicDir = clientDir </> "public"
-    let jsDir = clientDir </> "js"
-    let cssDir = clientDir </> "css"
-    let imageDir = clientDir </> "Images"
-
-    !! "src/Client/public/**/*.*" |> Shell.copyFiles publicDir
-    !! "src/Client/js/**/*.*" |> Shell.copyFiles jsDir
-    !! "src/Client/css/**/*.*" |> Shell.copyFiles cssDir
-    !! "src/Client/Images/**/*.*" |> Shell.copyFiles imageDir
-
-    "src/Client/index.html" |> Shell.copyFile clientDir
-)
-
-Target.create "CreateDockerImage" (fun _ ->
-    if String.IsNullOrEmpty dockerUser then
-        failwithf "docker username not given."
-    if String.IsNullOrEmpty dockerImageName then
-        failwithf "docker image Name not given."
-    let result =
-        Process.execSimple (fun info ->
-            let arguments = sprintf "build -t %s/%s ." dockerUser dockerImageName
-            { info with FileName = "docker"; UseShellExecute = false; Arguments = arguments }) TimeSpan.MaxValue
-    if result <> 0 then failwith "Docker build failed"
-)
 
 Target.create "Deploy" (fun _ ->
     let result =
@@ -169,18 +184,15 @@ Target.create "Deploy" (fun _ ->
 
 open Fake.Core.TargetOperators
 "Clean"
-    ==> "InstallDotNetCore"
     ==> "InstallClient"
-    ==> "BuildServer"
-    ==> "BuildClient"
+    ==> "Build"
+//#if (deploy == "docker")
+    ==> "Bundle"
+    ==> "Docker"
 
-"InstallClient"
+"Clean"
+    ==> "InstallClient"
+    ==> "RestoreServer"
     ==> "Run"
 
-"BuildClient"
-    ==> "BundleClient"
-    ==> "CreateDockerImage"
-    ==> "PrepareRelease"
-    ==> "Deploy"
-
-Target.runOrDefault "BuildClient"
+Target.runOrDefault "Build"
