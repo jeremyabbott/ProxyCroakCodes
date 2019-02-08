@@ -10,9 +10,6 @@ open Fable.Helpers.React.Props
 open Pages
 
 open Fulma
-open Fulma.Elements
-open Fulma.Components
-open Fulma.Extra.FontAwesome
 open Fable.Import
 
 type PageModel =
@@ -105,8 +102,9 @@ let navMenu model =
                     [ Button.IsOutlined
                       Button.Size IsSmall
                       Button.Props [ Href "https://github.com/jeremyabbott/ProxyCroakCodes" ] ]
-                    [ Icon.faIcon [ ]
-                        [ Fa.icon Fa.I.Github; Fa.fw ]
+                    [ Icon.icon [ ]
+                        [i [ClassName "fa fa-github"] [] ]
+                        // [ Fa.icon Fa.I.Github; Fa.fw ]
                       span [ ] [ str "View Source" ] ]
             ]
         ]
