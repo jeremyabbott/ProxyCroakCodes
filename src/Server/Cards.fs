@@ -8,6 +8,7 @@ open Giraffe.Serialization.Json
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Caching.Memory
 open ProxyCroakCodes
+open Microsoft.Extensions.Logging
 
 module Controller =
     let private cardsCacheKey = sprintf "cards:%s"
@@ -55,21 +56,25 @@ module Controller =
             task {
                 let serializer = getService<IJsonSerializer> ctx
                 let cache = getService<IMemoryCache> ctx
+
                 let! sets = getSets cache serializer
                 let! cards = getCards cache serializer name
-                match sets, cards with
-                | Ok s, Ok cs ->
-                    let cards =
-                        cs
-                        |> Seq.toList
-                        |> List.map (fun c -> Domain.mapPtcgCardToCard s c)
-                    return! Controller.json ctx cards
-                | Error _, _ ->
-                    let message = sprintf "Card sets could not be found!"
-                    return! notFound ctx message
-                | _, Error _ ->
-                    let message = sprintf "Cards with name %s could not be found!" name
-                    return! notFound ctx message
+
+                let response =
+                    match sets, cards with
+                    | Ok s, Ok cs ->
+                        let cards =
+                            cs
+                            |> Seq.toList
+                            |> List.map (fun c -> Domain.mapPtcgCardToCard s c)
+                        Controller.json ctx cards
+                    | Error _, _ ->
+                        let message = sprintf "Card sets could not be found!"
+                        notFound ctx message
+                    | _, Error _ ->
+                        let message = sprintf "Cards with name %s could not be found!" name
+                        notFound ctx message
+                return! response
             }
 
     let controller = controller {

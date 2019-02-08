@@ -1676,12 +1676,12 @@ fable-babel-plugins@~2.1.0:
   resolved "https://registry.yarnpkg.com/fable-babel-plugins/-/fable-babel-plugins-2.1.0.tgz#b3202a25f51a6acdf6bc34dc10dd13cf732d291d"
 
 fable-compiler@^2.1.1:
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/fable-compiler/-/fable-compiler-2.1.1.tgz#b2b02788b7597c659a932d2b31f0d824fe7d01ff"
+  version "2.1.8"
+  resolved "https://registry.yarnpkg.com/fable-compiler/-/fable-compiler-2.1.8.tgz#56753813dd872be7e85fcb98b3461cdfb293206f"
 
 fable-loader@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/fable-loader/-/fable-loader-2.1.0.tgz#c59f84eae6d87202d4671f44cf409ea7ee9f5a95"
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/fable-loader/-/fable-loader-2.1.2.tgz#7e6b720c99e7f520356ade5a5aa01409d5335b8c"
   dependencies:
     fable-babel-plugins "~2.1.0"
 
