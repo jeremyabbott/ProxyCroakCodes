@@ -156,7 +156,7 @@ Target.create "PrepareRelease" (fun _ ->
 
 Target.create "Deploy" (fun _ ->
     try
-        let arguments = sprintf "login %s --username \"%s\" --password \"%s\"" dockerLoginServer dockerUser dockerPassword
+        let arguments = sprintf "login %s --username %s --password %s" dockerLoginServer dockerUser dockerPassword
         runTool "docker" arguments __SOURCE_DIRECTORY__
     with _ ->
         failwith "Docker login failed"
@@ -173,6 +173,8 @@ open Fake.Core.TargetOperators
     ==> "Build"
     ==> "Bundle"
     ==> "Docker"
+    ==> "PrepareRelease"
+    ==> "Deploy"
 
 "Clean"
     ==> "InstallClient"
