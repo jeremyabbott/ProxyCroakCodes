@@ -129,7 +129,7 @@ Target.create "RunImage" (fun _ ->
 )
 
 Target.create "Docker" (fun _ ->
-    let buildArgs = sprintf "build -t %s ." dockerImageName
+    let buildArgs = sprintf "build -t %s ." dockerFullName
     runTool "docker" buildArgs __SOURCE_DIRECTORY__
 )
 
