@@ -1,6 +1,6 @@
-### 0.11.0 - 2018-05-26
+### 0.12.0 - 2019-02-07
 
-* Fixes navigation for hash routes
+* Update Fable dependencies
 * To do:
   * Add copy to clipboard functionality for selected cards
   * Print card list
