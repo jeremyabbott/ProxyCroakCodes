@@ -170,10 +170,11 @@ Target.create "Deploy" (fun _ ->
 open Fake.Core.TargetOperators
 "Clean"
     ==> "InstallClient"
+    ==> "RestoreServer"
     ==> "Build"
     ==> "Bundle"
     ==> "Docker"
-    ==> "PrepareRelease"
+    // ==> "PrepareRelease"
     ==> "Deploy"
 
 "Clean"

@@ -10,7 +10,7 @@ open Fable.Helpers.React.Props
 
 open Elmish
 open Fulma
-open Fulma.FontAwesome
+open Fable.FontAwesome
 open Thoth.Json
 
 type CardModel = {
@@ -175,8 +175,13 @@ let update (msg : Msg) (model : SearchResultsModel) : SearchResultsModel * Cmd<M
 let proxyCroakCodeFormatter (c : Card) =
       sprintf "%s %s %s" c.Name c.PtcgoCode c.Number
 
+let largeIcon i = Fa.i [i; Fa.Size Fa.FaLarge] []
+let largeTrash = Fa.Solid.Trash |> largeIcon
+let largeMinus = Fa.Solid.MinusSquare |> largeIcon
+let largePlus = Fa.Solid.PlusSquare |> largeIcon
+
 let imageCard dispatch (c: CardModel) =
-    let icon = if c.Selected then Fa.I.MinusSquare else Fa.I.PlusSquare
+    let icon =  if c.Selected then Fa.Regular.MinusSquare else Fa.Regular.PlusSquare
     let color = if c.Selected then IsDanger else IsPrimary
     let clickHandler = (fun _ -> if c.Selected then CardRemoved c
                                        else CardSelected c
@@ -202,14 +207,14 @@ let imageCard dispatch (c: CardModel) =
                 Card.footer [] [
                         Button.a
                             [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "card-footer-item"]
-                            [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+                            [ Fa.i [icon; Fa.Size Fa.FaLarge] []]
                 ]
             ]
         ]
     ]
 
 let textCard dispatch (c: CardModel) =
-    let icon = if c.Selected then Fa.I.MinusSquare else Fa.I.PlusSquare
+    let icon = if c.Selected then Fa.Solid.MinusSquare else Fa.Solid.PlusSquare
     let color = if c.Selected then IsDanger else IsPrimary
     let clickHandler = (fun _ -> if c.Selected then CardRemoved c
                                        else CardSelected c
@@ -227,7 +232,7 @@ let textCard dispatch (c: CardModel) =
                     div [ClassName "is-pulled-right"] [
                         Button.button
                             [Button.Props [OnClick clickHandler]; Button.Color color; Button.CustomClass "control"]
-                            [ Icon.faIcon [ ] [ Fa.icon icon; Fa.faLg ] ]
+                            [ icon |> largeIcon ]
                     ]
                 ]
             ]
@@ -282,7 +287,7 @@ let selectedCardsView (model: SearchResultsModel) dispatch =
                 [ Button.Color IsDanger;
                   Button.CustomClass "control"
                   Button.OnClick (fun _ -> CardRemoved sc |> dispatch)]
-                [ Icon.faIcon [ ] [ Fa.icon Fa.I.Trash; Fa.faLg ] ]
+                [ largeTrash ]
 
         let incrementButton sc dispatch =
             Button.button
@@ -290,14 +295,14 @@ let selectedCardsView (model: SearchResultsModel) dispatch =
                   Button.CustomClass "control"
                   Button.Disabled (sc.Quantity = 4)
                   Button.OnClick (fun _ -> QuantityIncremented sc |> dispatch)]
-                [ Icon.faIcon [ ] [ Fa.icon Fa.I.PlusSquare; Fa.faLg ] ]
+                [ largePlus ]
 
         let decrementButton sc dispatch =
             Button.button
                 [ Button.Color IsPrimary
                   Button.CustomClass "control"
                   Button.OnClick (fun _ -> QuantityDecremented sc |> dispatch) ]
-                [ Icon.faIcon [ ] [ Fa.icon Fa.I.MinusSquare; Fa.faLg ] ]
+                [ largeMinus ]
 
         let formattedCodeElement c = proxyCroakCodeFormatter c
 
@@ -331,7 +336,7 @@ let selectedCardsView (model: SearchResultsModel) dispatch =
                 [ Button.Color IsDanger;
                   Button.CustomClass "card-footer-item"
                   Button.OnClick (fun _ -> CardRemoved sc |> dispatch)]
-                [ Icon.faIcon [ ] [ Fa.icon Fa.I.Trash; Fa.faLg ] ]
+                [ largeTrash ]
 
         let incrementButton sc dispatch =
             Button.a
@@ -339,14 +344,14 @@ let selectedCardsView (model: SearchResultsModel) dispatch =
                   Button.Disabled (sc.Quantity = 4)
                   Button.CustomClass "card-footer-item"
                   Button.OnClick (fun _ -> QuantityIncremented sc |> dispatch)]
-                [ Icon.faIcon [ ] [ Fa.icon Fa.I.PlusSquare; Fa.faLg ] ]
+                [ largePlus ]
 
         let decrementButton sc dispatch =
             Button.a
                 [ Button.Color IsPrimary
                   Button.CustomClass "card-footer-item"
                   Button.OnClick (fun _ -> QuantityDecremented sc |> dispatch) ]
-                [ Icon.faIcon [ ] [ Fa.icon Fa.I.MinusSquare; Fa.faLg ] ]
+                [ largeMinus ]
 
         let formattedCodeElement c = proxyCroakCodeFormatter c
         [
@@ -451,8 +456,7 @@ let containerBox model (dispatch : Msg -> unit) =
                             yield Button.OnClick (fun ev -> ev.preventDefault(); SetDisplayMode DisplayMode.Text |> dispatch) ]
                           [
                               span [ClassName "icon"] [
-                                  Icon.faIcon [ ] [ Fa.icon Fa.I.FileText ]
-                              ]
+                                  Fa.i [ Fa.Solid.FileAlt ] [ ]]
                               span [] [str "Text Only"]
                           ]
                         Button.a
@@ -462,7 +466,7 @@ let containerBox model (dispatch : Msg -> unit) =
                             yield Button.OnClick (fun ev -> ev.preventDefault(); SetDisplayMode DisplayMode.Images |> dispatch) ]
                           [
                               span [ClassName "icon"] [
-                                  Icon.faIcon [ ] [ Fa.icon Fa.I.Image ]
+                                  Fa.i [ Fa.Solid.Image ] [ ]
                               ]
                               span [] [str "Images"]
                           ]

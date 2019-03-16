@@ -1,12 +1,12 @@
 group Server
   source https://api.nuget.org/v3/index.json
-  framework: netcoreapp2.1
+  framework: netcoreapp2.2
   storage: none
 
   nuget FSharp.Core
   nuget Saturn
   nuget Fable.JsonConverter
-  nuget Giraffe >= 1.1 < 3.0
+  nuget Giraffe
 
 group Client
   source https://api.nuget.org/v3/index.json
@@ -21,6 +21,7 @@ group Client
   nuget Fable.Elmish.HMR ~> 2
   nuget Fable.React ~> 4
   nuget Fulma ~> 1
+  nuget Fable.FontAwesome.Free
 
   clitool dotnet-fable ~> 2
 

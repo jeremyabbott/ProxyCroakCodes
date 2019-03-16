@@ -6,7 +6,7 @@ open Elmish.Browser.Navigation
 open Fable.Core.JsInterop
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
-
+open Fable.FontAwesome
 open Pages
 
 open Fulma
@@ -102,9 +102,7 @@ let navMenu model =
                     [ Button.IsOutlined
                       Button.Size IsSmall
                       Button.Props [ Href "https://github.com/jeremyabbott/ProxyCroakCodes" ] ]
-                    [ Icon.icon [ ]
-                        [i [ClassName "fa fa-github"] [] ]
-                        // [ Fa.icon Fa.I.Github; Fa.fw ]
+                    [ Icon.icon [] [i [ClassName "fab fa-github "] []]
                       span [ ] [ str "View Source" ] ]
             ]
         ]

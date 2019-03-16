@@ -8,7 +8,6 @@ open Giraffe.Serialization.Json
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Caching.Memory
 open ProxyCroakCodes
-open Microsoft.Extensions.Logging
 
 module Controller =
     let private cardsCacheKey = sprintf "cards:%s"
