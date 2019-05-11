@@ -16,9 +16,9 @@ let browserRouter = router {
 let config (services:IServiceCollection) =
   let fableJsonSettings = Newtonsoft.Json.JsonSerializerSettings()
   fableJsonSettings.Converters.Add(Fable.JsonConverter())
-  services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer fableJsonSettings) |> ignore
-  services.AddMemoryCache() |> ignore
-  services
+  services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer fableJsonSettings)
+    .AddMemoryCache()
+
 
 let apiRouter = router {
   forward "/search" ProxyCroakCodes.Cards.Controller.controller

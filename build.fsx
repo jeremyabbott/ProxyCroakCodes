@@ -147,7 +147,7 @@ Target.create "PrepareRelease" (fun _ ->
     Branches.pushTag __SOURCE_DIRECTORY__ "origin" tagName
 
     try
-        let arguments = sprintf "tag %s/%s %s/%s:%s" dockerUser dockerImageName dockerUser dockerImageName release.NugetVersion
+        let arguments = sprintf "tag %s %s:%s" dockerFullName dockerFullName release.NugetVersion
         runTool "docker" arguments __SOURCE_DIRECTORY__
     with
         _ -> failwith "Docker tag failed"
@@ -162,7 +162,7 @@ Target.create "Deploy" (fun _ ->
         failwith "Docker login failed"
 
     try
-        let arguments = sprintf "push %s/%s" dockerUser dockerImageName
+        let arguments = sprintf "push %s" dockerFullName
         runTool "docker" arguments __SOURCE_DIRECTORY__
      with _ -> failwith "Docker push failed"
 )
@@ -170,10 +170,11 @@ Target.create "Deploy" (fun _ ->
 open Fake.Core.TargetOperators
 "Clean"
     ==> "InstallClient"
+    ==> "RestoreServer"
     ==> "Build"
     ==> "Bundle"
     ==> "Docker"
-    ==> "PrepareRelease"
+    // ==> "PrepareRelease"
     ==> "Deploy"
 
 "Clean"

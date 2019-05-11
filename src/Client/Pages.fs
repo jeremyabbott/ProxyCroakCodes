@@ -10,8 +10,8 @@ type Page =
 
 let toHash =
     function
-    | Page.Home -> "#home"
-    | Page.About -> "#about"
+        | Page.Home -> "#home"
+        | Page.About -> "#about"
 
 /// The URL is turned into a Result.
 let pageParser : Parser<Page -> Page,_> =
