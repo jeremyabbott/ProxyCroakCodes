@@ -174,7 +174,7 @@ open Fake.Core.TargetOperators
     ==> "Build"
     ==> "Bundle"
     ==> "Docker"
-    // ==> "PrepareRelease"
+    ==> "PrepareRelease"
     ==> "Deploy"
 
 "Clean"
