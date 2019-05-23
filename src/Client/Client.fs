@@ -124,8 +124,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
 
 #if DEBUG
 open Elmish.Debug
-open Elmish.HMR
 #endif
+open Elmish.HMR
 
 Program.mkProgram init update view
 |> Program.toNavigable urlParser urlUpdate
