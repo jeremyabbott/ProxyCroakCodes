@@ -2,11 +2,9 @@ module Client.Search
 
 open Shared
 open Fable.Core.JsInterop
-open Fable.PowerPack.PromiseImpl
-open Fable.PowerPack.Fetch
-open Fable.PowerPack
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
+open Fetch
+open Fable.React
+open Fable.React.Props
 
 open Elmish
 open Fulma
@@ -74,7 +72,7 @@ let init () =
       Tabs = tabs
       ActiveTab = searchResultsTab }
 
-let cardDecoder: Decode.Decoder<Card> =
+let cardDecoder: Decoder<Card> =
     Decode.object (fun get ->
         {
             Id = get.Required.Field "Id" Decode.string
@@ -88,9 +86,16 @@ let cardDecoder: Decode.Decoder<Card> =
         }
     )
 
-let cardResponseDecoder: Decode.Decoder<CardResponse> =
+let cardResponseDecoder: Decoder<CardResponse> =
     Decode.list cardDecoder
 
+let fetchWithDecoder<'T> (url: string) (decoder: Decoder<'T>) (init: RequestProperties list) =
+    GlobalFetch.fetch(RequestInfo.Url url, Fetch.requestProps init)
+    |> Promise.bind (fun response ->
+        if not response.Ok then
+            response.StatusText |> Error |> Promise.lift
+        else
+            response.text() |> Promise.map (Decode.fromString decoder))
 let search text =
     promise {
         match text with
@@ -102,15 +107,17 @@ let search text =
                       HttpRequestHeaders.ContentType "application/json" ]]
             let url = sprintf "/api/search/%s" s
             try
-                let! response = Fetch.fetchAs<CardResponse> url cardResponseDecoder requestProperties
-                return response |> List.map (fun c -> { Selected = false; Card = c; Quantity = 1})
+                let! response = fetchWithDecoder<CardResponse> url cardResponseDecoder requestProperties
+                return
+                    match response with
+                    | Ok cards -> cards |> List.map (fun c -> { Selected = false; Card = c; Quantity = 1})
+                    | Error e -> failwithf "Could not find %s" e
             with ex ->
-                do Fable.Import.Browser.console.log (sprintf "Error! %A" ex)
-                return! failwithf "Could not find %s" ex.Message
+                return! failwithf "Could not find %s\n%s" s ex.Message
     }
 
 let searchCmd text =
-    Cmd.ofPromise search text SearchSuccess SearchFailed
+    Cmd.OfPromise.either search text SearchSuccess SearchFailed
 
 let setCardSelected cards selectedCard =
     match cards with

@@ -1,11 +1,14 @@
 group Client
   FSharp.Core
+  Fable.Elmish
   Fable.Elmish.Browser
   Fable.Elmish.Debugger
   Fable.Elmish.React
   Fable.Elmish.HMR
   Fable.Core
   Fable.React
-  dotnet-fable
+  Fable.Promise
+  Fable.Fetch
   Fulma
   Fable.FontAwesome.Free
+  Thoth.Json
