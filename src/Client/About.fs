@@ -1,7 +1,7 @@
 module Client.About
 open Fulma
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
+open Fable.React
+open Fable.React.Props
 
 let blankA url text =
     a [Href url; Target "_blank"] [str text]

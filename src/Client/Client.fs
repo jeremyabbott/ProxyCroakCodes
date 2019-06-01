@@ -1,16 +1,14 @@
 module Client.App
 
 open Elmish
-open Elmish.React
-open Elmish.Browser.Navigation
+open Elmish.Navigation
 open Fable.Core.JsInterop
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
-open Fable.FontAwesome
+open Fable.React
+open Fable.React.Props
 open Pages
 
 open Fulma
-open Fable.Import
+open Browser.Types
 
 type PageModel =
 | Home of Client.Search.SearchResultsModel
@@ -28,7 +26,6 @@ type Msg =
 // Navigation Stuff
 
 let handleNotFound (model: Model) =
-    Browser.console.error("Error parsing url: " + Browser.window.location.href)
     ( model, Navigation.modifyUrl (toHash Page.Home) )
 
 let urlUpdate (result:Page option) (model: Model) : Model * Cmd<Msg> =
@@ -40,7 +37,7 @@ let urlUpdate (result:Page option) (model: Model) : Model * Cmd<Msg> =
     | Some Page.Home ->
         { model with PageModel = Home model.SearchResults }, Cmd.none
 
-let goToUrl (e: React.MouseEvent)  =
+let goToUrl (e: MouseEvent)  =
     e.preventDefault()
     let href = !!e.target?href
     Navigation.newUrl href |> List.map (fun f -> f ignore) |> ignore
@@ -127,16 +124,15 @@ let view (model : Model) (dispatch : Msg -> unit) =
 
 #if DEBUG
 open Elmish.Debug
-open Elmish.HMR
 #endif
+open Elmish.HMR
 
 Program.mkProgram init update view
 |> Program.toNavigable urlParser urlUpdate
 #if DEBUG
 |> Program.withConsoleTrace
-|> Program.withHMR
 #endif
-|> Program.withReact "elmish-app"
+|> Program.withReactSynchronous "elmish-app"
 #if DEBUG
 |> Program.withDebugger
 #endif

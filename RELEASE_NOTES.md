@@ -1,6 +1,6 @@
-### 0.13.0 - 2019-05-11
+### 0.14.0 - 2019-05-31
 
-* Updates paket dependencies (saturn et. al)
+* Update Fable to 3.*
 * To do:
   * Add copy to clipboard functionality for selected cards
   * Print card list
