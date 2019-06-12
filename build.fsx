@@ -50,7 +50,8 @@ let runTool cmd args workingDir =
     |> CreateProcess.withWorkingDirectory workingDir
     |> CreateProcess.ensureExitCode
     |> Proc.run
-    |> ignore
+
+let runToolIgnore cmd args workingDir = runTool cmd args workingDir |> ignore
 
 let runDotNet cmd workingDir =
     let result =
@@ -71,10 +72,10 @@ Target.create "Clean" (fun _ ->
 
 Target.create "InstallClient" (fun _ ->
     printfn "Node version:"
-    runTool nodeTool "--version" __SOURCE_DIRECTORY__
+    runTool nodeTool "--version" __SOURCE_DIRECTORY__ |> ignore
     printfn "Yarn version:"
-    runTool yarnTool "--version" __SOURCE_DIRECTORY__
-    runTool yarnTool "install --frozen-lockfile" __SOURCE_DIRECTORY__
+    runTool yarnTool "--version" __SOURCE_DIRECTORY__ |> ignore
+    runTool yarnTool "install --frozen-lockfile" __SOURCE_DIRECTORY__ |> ignore
     runDotNet "restore" clientPath
 )
 
@@ -89,7 +90,7 @@ Target.create "RestoreServer" (fun _ ->
 
 Target.create "Build" (fun _ ->
     runDotNet "build" serverPath
-    runTool yarnTool "webpack-cli --config src/Client/webpack.config.js -p" clientPath
+    runToolIgnore yarnTool "webpack-cli --config src/Client/webpack.config.js -p" clientPath
 )
 
 Target.create "Run" (fun _ ->
@@ -97,7 +98,7 @@ Target.create "Run" (fun _ ->
         runDotNet "watch run" serverPath
     }
     let client = async {
-        runTool yarnTool "webpack-dev-server --config src/Client/webpack.config.js" clientPath
+        runToolIgnore yarnTool "webpack-dev-server --config src/Client/webpack.config.js" clientPath
     }
     let browser = async {
         do! Async.Sleep 5000
@@ -125,12 +126,16 @@ let dockerFullName = sprintf "%s/%s" dockerUser dockerImageName
 
 Target.create "RunImage" (fun _ ->
     let args = sprintf "run -it --rm -p 8085:8085 %s" dockerFullName
-    runTool "docker" args __SOURCE_DIRECTORY__
+    let result = runTool "docker" args __SOURCE_DIRECTORY__
+    if result.ExitCode <> 0 then
+        printfn "Failed to run docker container: %A" result.Result
 )
 
 Target.create "Docker" (fun _ ->
     let buildArgs = sprintf "build -t %s ." dockerFullName
-    runTool "docker" buildArgs __SOURCE_DIRECTORY__
+    let result = runTool "docker" buildArgs __SOURCE_DIRECTORY__
+    if result.ExitCode <> 0 then
+        printfn "Failed to build docker image: %A" result.Result
 )
 
 Target.create "PrepareRelease" (fun _ ->
@@ -139,7 +144,7 @@ Target.create "PrepareRelease" (fun _ ->
     CommandHelper.directRunGitCommand __SOURCE_DIRECTORY__ "fetch origin --tags" |> ignore
 
     Staging.stageAll __SOURCE_DIRECTORY__
-    Fake.Tools.Git.Commit.exec __SOURCE_DIRECTORY__ (sprintf "Bumping version to %O" release.NugetVersion)
+    Commit.exec __SOURCE_DIRECTORY__ (sprintf "Bumping version to %O" release.NugetVersion)
     Branches.pushBranch __SOURCE_DIRECTORY__ "origin" "master"
 
     let tagName = string release.NugetVersion
@@ -148,7 +153,7 @@ Target.create "PrepareRelease" (fun _ ->
 
     try
         let arguments = sprintf "tag %s %s:%s" dockerFullName dockerFullName release.NugetVersion
-        runTool "docker" arguments __SOURCE_DIRECTORY__
+        runToolIgnore "docker" arguments __SOURCE_DIRECTORY__
     with
         _ -> failwith "Docker tag failed"
 )
@@ -157,13 +162,13 @@ Target.create "PrepareRelease" (fun _ ->
 Target.create "Deploy" (fun _ ->
     try
         let arguments = sprintf "login %s --username %s --password %s" dockerLoginServer dockerUser dockerPassword
-        runTool "docker" arguments __SOURCE_DIRECTORY__
+        runToolIgnore "docker" arguments __SOURCE_DIRECTORY__
     with _ ->
         failwith "Docker login failed"
 
     try
         let arguments = sprintf "push %s" dockerFullName
-        runTool "docker" arguments __SOURCE_DIRECTORY__
+        runToolIgnore "docker" arguments __SOURCE_DIRECTORY__
      with _ -> failwith "Docker push failed"
 )
 

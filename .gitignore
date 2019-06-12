@@ -6,3 +6,4 @@ paket-files/
 node_modules/
 src/Client/public/js/
 deploy
+.ionide/symbolCache.db
