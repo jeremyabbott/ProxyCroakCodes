@@ -1,6 +1,6 @@
-### 0.14.0 - 2019-05-31
+### 0.15.0 - 2019-09-15
 
-* Update Fable to 3.*
+* Patches dumb lodash
 * To do:
   * Add copy to clipboard functionality for selected cards
   * Print card list

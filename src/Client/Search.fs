@@ -96,6 +96,7 @@ let fetchWithDecoder<'T> (url: string) (decoder: Decoder<'T>) (init: RequestProp
             response.StatusText |> Error |> Promise.lift
         else
             response.text() |> Promise.map (Decode.fromString decoder))
+
 let search text =
     promise {
         match text with
@@ -103,8 +104,8 @@ let search text =
         | Some s ->
             let requestProperties =
                 [ RequestProperties.Method HttpMethod.GET
-                  Fetch.requestHeaders [
-                      HttpRequestHeaders.ContentType "application/json" ]]
+                  requestHeaders [
+                      ContentType "application/json" ]]
             let url = sprintf "/api/search/%s" s
             try
                 let! response = fetchWithDecoder<CardResponse> url cardResponseDecoder requestProperties
