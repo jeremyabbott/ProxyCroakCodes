@@ -36,49 +36,65 @@ module Controller =
                 let! apiCards = Domain.getCardsFromApiByName serializer name
                 return apiCards
         }
-    let private getSets cache serializer =
+
+    let requestSets cache serializer =
+        task {
+            let! apiSets = Domain.getSetsFromApi serializer
+            match apiSets with
+            | Ok a ->
+                return addToCache cache setsCacheKey a |> Ok
+            | Error e ->
+                return Error e
+        }
+
+    let getSets cache serializer =
         task {
             let cachedSets = getFromCache<PtcgSet seq>(cache) setsCacheKey
             match cachedSets with
             | Ok cs -> return Ok cs
-            | Error _ ->
-                let! apiSets = Domain.getSetsFromApi serializer
-                match apiSets with
-                | Ok a ->
-                    addToCache cache setsCacheKey a |> ignore
-                    return Ok a
-                | Error e ->
-                    return Error e
+            | Error _ -> return! requestSets cache serializer
         }
 
-    let nameSearch =
+    let toCardResponse s c = Domain.mapPtcgCardToCard s c
+
+    let getCardsByName serializer cache name =
+        task {
+            let sets' = getSets cache serializer
+            let cards' = getCards cache serializer name
+
+            let! sets = sets'
+            let! cards = cards'
+
+            let errorMessage = sprintf "An error occurred while searching for %s" name
+            let result =
+                sets
+                |> Result.mapError (fun _ -> errorMessage)
+                |> Result.bind (fun s ->
+                    match cards with
+                    | Ok cs -> cs |> Seq.map (toCardResponse s) |> Ok
+                    | Error _ -> errorMessage |> Error)
+            return result
+        }
+
+    let handleSuccess ctx name cards =
+        if Seq.isEmpty cards then
+            sprintf "No cards were found with name %s" name
+            |> notFound ctx
+        else
+            Controller.json ctx cards
+
+    let nameHandler =
         fun (ctx: HttpContext) name ->
             task {
                 let serializer = getService<IJsonSerializer> ctx
                 let cache = getService<IMemoryCache> ctx
-
-                let! sets = getSets cache serializer
-                let! cards = getCards cache serializer name
-
-                let response =
-                    match sets, cards with
-                    | Ok s, Ok cs ->
-                        let cards =
-                            cs
-                            |> Seq.toList
-                            |> List.map (fun c -> Domain.mapPtcgCardToCard s c)
-                        Controller.json ctx cards
-                    | Error _, _ ->
-                        let message = sprintf "Card sets could not be found!"
-                        notFound ctx message
-                    | _, Error _ ->
-                        let message = sprintf "Cards with name %s could not be found!" name
-                        notFound ctx message
-                return! response
+                let! result = getCardsByName serializer cache name
+                return!
+                    match result with
+                    | Ok cards -> handleSuccess ctx name cards
+                    | Error e -> internalError ctx e
             }
 
-
-
     let controller = controller {
-        show nameSearch
+        show nameHandler
     }
