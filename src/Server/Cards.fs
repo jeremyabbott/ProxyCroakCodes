@@ -77,8 +77,6 @@ module Controller =
                 return! response
             }
 
-
-
     let controller = controller {
         show nameSearch
     }

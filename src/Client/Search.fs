@@ -429,43 +429,41 @@ let contentView model dispatch =
             | SelectedCards -> selectedCardsView model dispatch
         Box.box' [] [tabs;content]
 
-let containerBox model (dispatch : Msg -> unit) =
-    Box.box' []
-        [
-            Heading.h1 [ Heading.Option.Is3; Heading.Option.CustomClass "has-text-centered" ] [str "Proxy Croak Codes"]
-            form [] [
-                Field.div [ Field.HasAddons;Field.HasAddonsCentered] [
-                    Control.div [ ] [
-                        Input.text
-                            [ Input.Placeholder "Enter a Pokemon name"
-                              Input.Props
-                                [ OnChange (fun ev ->
-                                              ev.preventDefault()
-                                              dispatch (SetSearchText !!ev.target?value))
-                                  AutoFocus true ]
-                            ]
-                    ]
-                    Control.div [ ] [
-                        Button.button
-                          [ Button.Color IsPrimary
-                            Button.IsLoading model.Searching
-                            Button.Disabled (model.Searching || model.SearchText.IsNone)
-                            Button.OnClick (fun ev -> ev.preventDefault(); Search |> dispatch) ]
-                          [ str "Search" ]
 
+let containerBox model (dispatch : Msg -> unit) =
+    div [Class "nes-container is-centered"]
+        [
+            h1 [ ] [str "Proxy Croak Codes"]
+            form [] [
+                div [] [
+                    div [ Class "nes-field" ] [
+                        input [
+                            Placeholder "Enter a Pokemon card name"
+                            OnChange (fun ev -> dispatch (SetSearchText !!ev.target?value))
+                            AutoFocus true
+                            Class "nes-input"
+                        ]
+                    ]
+                    div [ ] [
+                        button [
+                            Class "nes-btn is-primary"
+                            Disabled (model.Searching || model.SearchText.IsNone)
+                            OnClick (fun _ -> dispatch Search)
+                        ] [str "Search"]
                     ]
                 ]
-                Field.div [ Field.HasAddons;Field.HasAddonsCentered] [
-                    Control.div [ ] [
-                        Button.a
-                          [ if model.DisplayMode = DisplayMode.Images then yield Button.Color IsPrimary
-                            yield Button.Disabled (model.DisplayMode = DisplayMode.Text)
-                            yield Button.IsFocused (model.DisplayMode = DisplayMode.Text)
-                            yield Button.OnClick (fun ev -> ev.preventDefault(); SetDisplayMode DisplayMode.Text |> dispatch) ]
+                div [] [
+                    div [ ] [
+                        button
+                          [ //if model.DisplayMode = DisplayMode.Images then yield Button.Color IsPrimary
+                            yield Class "nes-btn is-primary"
+                            yield Disabled (model.DisplayMode = DisplayMode.Text)
+                            yield OnClick (fun ev -> ev.preventDefault(); SetDisplayMode DisplayMode.Text |> dispatch) ]
                           [
-                              span [ClassName "icon"] [
-                                  Fa.i [ Fa.Solid.FileAlt ] [ ]]
-                              span [] [str "Text Only"]
+                              str "Text Only"
+                            //   span [ClassName "icon"] [
+                            //       Fa.i [ Fa.Solid.FileAlt ] [ ]]
+                            //   span [] [str "Text Only"]
                           ]
                         Button.a
                           [ if model.DisplayMode = DisplayMode.Text then yield Button.Color IsPrimary
