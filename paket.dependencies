@@ -1,7 +1,7 @@
-version 5.206.0
+version 5.226.0
 group Server
   source https://api.nuget.org/v3/index.json
-  framework: netcoreapp2.2
+  framework: netcoreapp3.0
   storage: none
 
   nuget FSharp.Core
@@ -32,7 +32,7 @@ group Build
   framework: netstandard2.0
   storage: none
 
-  nuget FSharp.Core 4.3.4 // https://github.com/fsharp/FAKE/issues/2001
+  nuget Fake.DotNet.AssemblyInfoFile
   nuget Fake.Core.Target
   nuget Fake.Core.SemVer
   nuget Fake.Core.Environment

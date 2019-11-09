@@ -1,6 +1,6 @@
-### 0.15.0 - 2019-09-15
+### 0.16.0 - 2019-11-18
 
-* Patches dumb lodash
+* Updates to .NET Core 3.0
 * To do:
   * Add copy to clipboard functionality for selected cards
   * Print card list
