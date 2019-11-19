@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\Shared.fs" />
+    <Compile Include="Version.fs" />
     <Compile Include="Search.fs" />
     <Compile Include="About.fs" />
     <Compile Include="Pages.fs" />

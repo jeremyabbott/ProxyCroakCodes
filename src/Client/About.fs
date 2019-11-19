@@ -82,4 +82,6 @@ let view _ _ =
             Heading.h2 [] [str "The Tech"]
             article [] theTech
         ]
+        footer [] [str ("Version: " + Version.app)]
+
     ]

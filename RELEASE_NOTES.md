@@ -1,6 +1,6 @@
-### 0.16.0 - 2019-11-18
+### 0.17.0 - 2019-11-18
 
-* Updates to .NET Core 3.0
+* Adds version to About page
 * To do:
   * Add copy to clipboard functionality for selected cards
   * Print card list
