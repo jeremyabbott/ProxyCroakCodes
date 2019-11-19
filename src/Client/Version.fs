@@ -1,3 +1,3 @@
 ﻿module Version
 
-let app = "0.16.0"
+let app = "0.17.0"
