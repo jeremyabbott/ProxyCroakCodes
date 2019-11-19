@@ -24,11 +24,19 @@ let search2: HttpHandler =
     let query = ctx.BindQueryString<Shared.V2.CardSearchRequest>()
     json query next ctx
 
-let apiRouter = router {
-  get "/search2" search2
+let v2Router = router {
   // get "/search2" (fun next ctx -> text "search2" next ctx)
-  forward "/search" ProxyCroakCodes.Cards.Controller.controller
+  get "/search" search2
+  pipe_through (setHttpHeader "X-Api-Version" "2")
 }
+
+let apiRouter = router {
+  forward "/v2" v2Router
+  forward "/search" ProxyCroakCodes.Cards.Controller.controller
+  case_insensitive
+}
+
+
 
 let mainRouter = router {
   forward "" browserRouter
