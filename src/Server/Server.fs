@@ -19,8 +19,14 @@ let config (services:IServiceCollection) =
   services.AddSingleton<IJsonSerializer>(NewtonsoftJsonSerializer fableJsonSettings)
     .AddMemoryCache()
 
+let search2: HttpHandler =
+  fun next ctx ->
+    let query = ctx.BindQueryString<Shared.V2.CardSearchRequest>()
+    json query next ctx
 
 let apiRouter = router {
+  get "/search2" search2
+  // get "/search2" (fun next ctx -> text "search2" next ctx)
   forward "/search" ProxyCroakCodes.Cards.Controller.controller
 }
 

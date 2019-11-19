@@ -11,6 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Shared\Shared.fs" />
+    <Compile Include="..\Shared\SharedV2.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Cards.fs" />
     <Compile Include="Server.fs" />
